@@ -4,35 +4,36 @@ import io.jsonwebtoken.Claims
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import java.util.stream.Collectors
 
-
+@Component
 class AuthenticationManager(private val tokenProvider: TokenProvider) : ReactiveAuthenticationManager {
+    private val constants = Constants()
 
-    override fun authenticate(authentication: Authentication): Mono<*>? {
-        val authToken: String = authentication.getCredentials().toString()
-        val username: String?
-        username = try {
-            tokenProvider.getUsernameFromToken(authToken)
+    @SuppressWarnings("unchecked")
+    override fun authenticate(authentication: Authentication): Mono<Authentication> {
+        val authToken: String = authentication.credentials.toString()
+        val phoneNumber: String? = try {
+            tokenProvider.getPhoneNumberFromToken(authToken)
         } catch (e: Exception) {
             null
         }
-        return if (username != null && !tokenProvider.isTokenExpired(authToken)) {
+        return if (phoneNumber != null && !tokenProvider.isTokenExpired(authToken)!!) {
             val claims: Claims = tokenProvider.getAllClaimsFromToken(authToken)
-            val roles = claims.get<List<*>>(AUTHORITIES_KEY, MutableList::class.java)
-            val authorities = roles.stream().map { role: Any? ->
-                SimpleGrantedAuthority(
-                    role
-                )
-            }.collect(Collectors.toList<Any>())
-            val auth = UsernamePasswordAuthenticationToken(username, username, authorities)
-            SecurityContextHolder.getContext().authentication = AuthenticatedUser(username, authorities)
+            val roles = claims.get(constants.AUTHORITIES_KEY, List::class.java)
+            val authorities = roles.stream().map { role ->
+                SimpleGrantedAuthority(role as String)
+            }.collect(Collectors.toList())
+            val auth = UsernamePasswordAuthenticationToken(phoneNumber, phoneNumber, authorities)
+            SecurityContextHolder.getContext().authentication = auth
             Mono.just(auth)
         } else {
-            Mono.empty<Any>()
+            Mono.empty()
         }
     }
 }

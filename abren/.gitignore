@@ -31,5 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+#TODO: Make sure this works
 abren/src/main/resources/firebase_config.json
 

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.stereotype.Repository
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.reactive.config.EnableWebFlux
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.io.*
@@ -22,6 +23,7 @@ import java.util.stream.Collectors
 
 @SpringBootApplication
 @EnableReactiveMongoRepositories
+@EnableWebFlux
 class AbrenApplication
 
 fun main(args: Array<String>) {
@@ -38,7 +40,7 @@ fun getDatabaseName(): String? {
 }
 // Trial handler (will be removed)
 @RestController
-class TestHandler(private val userRepository: UserRepository) {
+class TestHandler() {
 
 	@GetMapping(value = ["/try_python"])
 	fun tryPython () : ResponseEntity<List<String>> {
@@ -65,16 +67,16 @@ class TestHandler(private val userRepository: UserRepository) {
 		return file.absolutePath
 	}
 
-	@GetMapping(value = ["/try_database"])
-	fun tryDatabase(): Flux<User?> {
-		return userRepository.findAll();
-	}
+//	@GetMapping(value = ["/try_database"])
+//	fun tryDatabase(): Flux<User?> {
+//		return userRepository.findAll();
+//	}
 }
 
-@Document
-data class User (var _id: String,
-	var name: String)
-
-
-@Repository
-interface UserRepository : ReactiveMongoRepository<User?, String?>
+//@Document
+//data class User (var _id: String,
+//	var name: String)
+//
+//
+//@Repository
+//interface UserRepository : ReactiveMongoRepository<User?, String?>

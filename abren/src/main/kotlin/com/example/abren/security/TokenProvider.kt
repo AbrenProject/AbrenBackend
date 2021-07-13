@@ -4,13 +4,13 @@ import com.example.abren.models.User
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
-import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.util.*
+import java.util.stream.Collectors
 
-
-class JwtTokenUtil : Serializable {
+@Component
+class TokenProvider : Serializable {
     private val constants = Constants()
 
     fun getPhoneNumberFromToken(token: String?): String {
@@ -23,40 +23,34 @@ class JwtTokenUtil : Serializable {
         return (Claims::getExpiration)(claims)
     }
 
-//    fun <T> getClaimFromToken(token: String?, claimsResolver: () -> T): T {
-//        val claims = getAllClaimsFromToken(token)
-//        return claimsResolver.apply(claims)
-//    }
-
-    private fun getAllClaimsFromToken(token: String?): Claims {
+    fun getAllClaimsFromToken(token: String?): Claims {
         return Jwts.parser()
             .setSigningKey(constants.SIGNING_KEY)
             .parseClaimsJws(token)
             .body
     }
 
-    private fun isTokenExpired(token: String?): Boolean? {
+    fun isTokenExpired(token: String?): Boolean? {
         val expiration: Date = getExpirationDateFromToken(token)
         return expiration.before(Date())
     }
 
-    fun generateToken(user: User): String? {
-        return doGenerateToken(user.phoneNumber)
+    fun generateToken(user: User?): String {
+        val authorities: List<String?> = List(1){user?.role}
+        return if (user != null) {
+            Jwts.builder()
+                .setSubject(user.phoneNumber)
+                .claim(constants.AUTHORITIES_KEY, authorities)
+                .signWith(SignatureAlgorithm.HS256, constants.SIGNING_KEY)
+                .setIssuedAt(Date(System.currentTimeMillis()))
+                .setExpiration(Date(System.currentTimeMillis() + constants.ACCESS_TOKEN_VALIDITY_SECONDS * 1000)) //TODO: Don't let it expire?
+                .compact()
+        }else {
+            ""
+        }
     }
 
-    private fun doGenerateToken(subject: String): String? {
-        val claims = Jwts.claims().setSubject(subject)
-        claims["scopes"] = Arrays.asList(SimpleGrantedAuthority("ROLE_ADMIN"))
-        return Jwts.builder()
-            .setClaims(claims)
-//            .setIssuer("http://devglan.com")
-            .setIssuedAt(Date(System.currentTimeMillis()))
-            .setExpiration(Date(System.currentTimeMillis() + constants.ACCESS_TOKEN_VALIDITY_SECONDS * 1000))
-            .signWith(SignatureAlgorithm.HS256, constants.SIGNING_KEY)
-            .compact()
-    }
-
-    fun validateToken(token: String?, user: User): Boolean? {
+    fun validateToken(token: String?, user: User): Boolean {
         val phoneNumber = getPhoneNumberFromToken(token)
         return phoneNumber == user.phoneNumber && !isTokenExpired(token)!!
     }

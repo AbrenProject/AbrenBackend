@@ -1,4 +1,5 @@
 package com.example.abren.models
 
-class LoginRequest {
+data class LoginRequest(var phoneNumber: String,
+                        var password: String) {
 }
