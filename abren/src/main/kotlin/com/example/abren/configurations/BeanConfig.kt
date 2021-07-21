@@ -15,12 +15,15 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
 
     @Bean
     fun userRoute(): RouterFunction<*>? {
-        return route(GET("/users/{id}").and(accept(MediaType.APPLICATION_JSON)), userHandler::getProfile)
+        return route(GET("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::getProfile)
+                .andRoute(PUT("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::editUser)
+                .andRoute(POST("/api/users/rate/{id}").and(accept(MediaType.APPLICATION_JSON)), userHandler::rate)
+
     }
 
     @Bean
     fun authRoute(): RouterFunction<ServerResponse> {
-        return route(POST("/auth/login").and(accept(MediaType.APPLICATION_JSON)), userHandler::login)
-                .andRoute(POST("/auth/signup").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
+        return route(POST("/api/auth/login").and(accept(MediaType.APPLICATION_JSON)), userHandler::login)
+                .andRoute(POST("/api/auth/signup").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
     }
 }

@@ -1,25 +1,25 @@
 package com.example.abren.models
 
-import java.time.LocalDate
+import java.time.LocalDateTime
 
 data class User(
-    var _id: String?,
-    var name: Name?,
+    var _id: String? = null,
+    var name: Name? = null,
     var phoneNumber: String,
-    var gender: String?,
-    var ageGroup: String?,
+    var gender: String? = null,
+    var ageGroup: String? = null,
     var password: String,
-    var role: String?,
-    var isVerified: Boolean?,
+    var role: String?, //TODO: Create enum
+    var isVerified: Boolean = false,
     var emergencyPhoneNumber: String,
-    var profilePictureUrl: String?,
-    var idCardUrl: String?,
-    var vehicleInformation: VehicleInformation?,
-    var preference: List<Preference>?,
-    var rating: Double = 0.0,
+    var profilePictureUrl: String? = null,
+    var idCardUrl: String? = null,
+    var vehicleInformation: VehicleInformation? = null,
+    var preference: List<Preference>? = null,
+    var rating: MutableList<Int> = MutableList(5) { 0 },
     var creditsBought: Double = 0.0,
     var creditsEarned: Double = 0.0,
-    var createdAt: LocalDate = LocalDate.now(),
-    var updatedAt: LocalDate = LocalDate.now(),
-    var deletedAt: LocalDate = LocalDate.now(),
+    var createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    var deletedAt: LocalDateTime = LocalDateTime.now(),
 )

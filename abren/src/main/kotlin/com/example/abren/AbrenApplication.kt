@@ -39,39 +39,13 @@ fun getDatabaseName(): String? {
 	return "abrendatabase"
 }
 // Trial handler (will be removed)
-@RestController
-class TestHandler() {
-
-	@GetMapping(value = ["/try_python"])
-	fun tryPython () : ResponseEntity<List<String>> {
-		val processBuilder = ProcessBuilder("python", resolvePythonScriptPath("try.py"))
-		processBuilder.redirectErrorStream(true)
-
-		val process = processBuilder.start()
-		val results: List<String> = readProcessOutput(process.inputStream)
-
-		val exitCode = process.waitFor()
-		return ResponseEntity(results, HttpStatus.OK);
-	}
-
-	@Throws(IOException::class)
-	private fun readProcessOutput(inputStream: InputStream): List<String> {
-		BufferedReader(InputStreamReader(inputStream)).use { output ->
-			return output.lines()
-				.collect(Collectors.toList())
-		}
-	}
-
-	private fun resolvePythonScriptPath(filename: String): String {
-		val file = File("src/main/resources/scripts/$filename")
-		return file.absolutePath
-	}
-
+//@RestController
+//class TestHandler() {
 //	@GetMapping(value = ["/try_database"])
 //	fun tryDatabase(): Flux<User?> {
 //		return userRepository.findAll();
 //	}
-}
+//}
 
 //@Document
 //data class User (var _id: String,

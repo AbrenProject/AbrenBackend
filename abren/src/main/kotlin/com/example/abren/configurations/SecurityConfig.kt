@@ -22,7 +22,7 @@ class SecurityConfig(private val authenticationManager: AuthenticationManager, p
 
     @Bean
     fun springWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain? {
-        val patterns = arrayOf("/auth/**")
+        val patterns = arrayOf("/api/auth/**")
         return http.cors().disable()
             .exceptionHandling()
             .authenticationEntryPoint { swe: ServerWebExchange, e: AuthenticationException? ->
@@ -36,6 +36,7 @@ class SecurityConfig(private val authenticationManager: AuthenticationManager, p
             .authorizeExchange()
             .pathMatchers(*patterns).permitAll()
             .pathMatchers(HttpMethod.OPTIONS).permitAll()
+//            .pathMatchers("/users/change_account").hasAuthority("RIDER")
             .anyExchange().authenticated()
             .and()
             .build()

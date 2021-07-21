@@ -1,7 +1,9 @@
 package com.example.abren.security
 
+import com.example.abren.configurations.Constants
 import io.jsonwebtoken.Claims
-import org.springframework.beans.factory.annotation.Autowired
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -14,7 +16,6 @@ import java.util.stream.Collectors
 @Component
 class AuthenticationManager(private val tokenProvider: TokenProvider) : ReactiveAuthenticationManager {
     private val constants = Constants()
-
     @SuppressWarnings("unchecked")
     override fun authenticate(authentication: Authentication): Mono<Authentication> {
         val authToken: String = authentication.credentials.toString()
