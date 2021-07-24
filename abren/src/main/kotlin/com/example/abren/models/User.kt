@@ -14,6 +14,7 @@ data class User(
     var emergencyPhoneNumber: String,
     var profilePictureUrl: String? = null,
     var idCardUrl: String? = null,
+    var idCardBackUrl: String? = null,
     var vehicleInformation: VehicleInformation? = null,
     var preference: List<Preference>? = null,
     var rating: MutableList<Int> = MutableList(5) { 0 },

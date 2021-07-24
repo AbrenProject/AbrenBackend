@@ -1,6 +1,7 @@
 package com.example.abren.handlers
 
 import com.example.abren.configurations.Constants
+import com.example.abren.models.AuthResponse
 import com.example.abren.models.Preference
 import com.example.abren.models.User
 import com.example.abren.models.VehicleInformation
@@ -52,9 +53,9 @@ class UserHandler(private val userService: UserService, private val tokenProvide
 
             userService.findByPhoneNumber(phoneNumber)
                 .flatMap second@ { user ->
-                    if (BCryptPasswordEncoder().matches(password, user?.password)) {
+                    if (user != null && BCryptPasswordEncoder().matches(password, user.password)) {
                         return@second ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                            .body(BodyInserters.fromValue(tokenProvider.generateToken(user)))
+                            .body(BodyInserters.fromValue(AuthResponse(user, tokenProvider.generateToken(user))))
                     } else {
                         return@second ServerResponse.badRequest()
                             .body(BodyInserters.fromValue("Invalid Credentials"))
@@ -77,6 +78,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
 
             val profilePicture : FilePart = map["profilePicture"]!! as FilePart
             val idCardPicture : FilePart = map["idCardPicture"]!! as FilePart
+            val idCardBackPicture : FilePart = map["idCardBackPicture"]!! as FilePart
             val phoneNumber : String = (map["phoneNumber"]!! as FormFieldPart).value()
             val emergencyPhoneNumber : String = (map["emergencyPhoneNumber"]!! as FormFieldPart).value()
             val password : String = (map["password"]!! as FormFieldPart).value()
@@ -102,7 +104,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                         .body(BodyInserters.fromValue("The role field must be one of the following values: ['RIDER', 'DRIVER']"))
                 }
 
-                val user = User(password = BCryptPasswordEncoder().encode(password), phoneNumber = phoneNumber, emergencyPhoneNumber = emergencyPhoneNumber, role = role, idCardUrl = saveFile(idCardPicture, "id_cards"), profilePictureUrl = saveFile(profilePicture, "profiles"))
+                val user = User(password = BCryptPasswordEncoder().encode(password), phoneNumber = phoneNumber, emergencyPhoneNumber = emergencyPhoneNumber, role = role, idCardUrl = saveFile(idCardPicture, "id_cards"), idCardBackUrl = saveFile(idCardBackPicture, "id_card_backs"), profilePictureUrl = saveFile(profilePicture, "profiles"))
 
                 if(role == "DRIVER"){
                     if(!constants.REQUIRED_DRIVER_KEYS.all { map.containsKey(it) }){
@@ -143,7 +145,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
 
                 savedUserMono.flatMap { savedUser ->
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                        BodyInserters.fromValue(savedUser)
+                        BodyInserters.fromValue(AuthResponse(savedUser, tokenProvider.generateToken(savedUser)))
                     )
                 }
             }
@@ -230,10 +232,10 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                     if(user != null && map.containsKey("rating") && user.phoneNumber != securityContext.authentication.principal as String){
                         try {
                             val rating = parseInt((map["rating"]!! as FormFieldPart).value())
-                            if(rating < 0 || rating > 4){
+                            if(rating < 1 || rating > 5){
                                 throw NumberFormatException()
                             }
-                            user.rating[rating] ++
+                            user.rating[rating - 1] ++
                         }catch (e: NumberFormatException){
                             return@third ServerResponse.badRequest()
                                 .body(BodyInserters.fromValue("Invalid value for rating."))
