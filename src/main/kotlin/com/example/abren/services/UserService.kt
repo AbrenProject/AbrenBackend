@@ -1,6 +1,5 @@
 package com.example.abren.services
 
-import com.example.abren.models.Preference
 import com.example.abren.models.User
 import com.example.abren.repositories.UserRepository
 import com.example.abren.security.SecurityContextRepository
@@ -8,7 +7,6 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
