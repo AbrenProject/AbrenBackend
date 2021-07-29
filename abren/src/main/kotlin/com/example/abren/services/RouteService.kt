@@ -13,7 +13,7 @@ class RouteService(private val routeRepository: RouteRepository) {
         return routeRepository.findAll();
     }
 
-    fun findOne(id:Long): Mono<Route>{
+    fun findOne(id:String): Mono<Route>{
         return routeRepository.findById(id)
     }
 
@@ -21,11 +21,4 @@ class RouteService(private val routeRepository: RouteRepository) {
         return routeRepository.save(route)
     }
 
-    fun update(id:Long, route:Route): Mono<Route>{
-
-    }
-
-    fun delete(id:Long):Mono<Route>{
-
-    }
 }
