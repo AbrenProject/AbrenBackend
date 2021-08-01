@@ -1,7 +1,7 @@
 package com.example.abren.handlers
 
 import com.example.abren.configurations.Constants
-import com.example.abren.models.AuthResponse
+import com.example.abren.responses.AuthResponse
 import com.example.abren.models.Preference
 import com.example.abren.models.User
 import com.example.abren.models.VehicleInformation

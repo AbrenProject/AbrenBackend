@@ -22,5 +22,5 @@ data class User(
     var creditsEarned: Double = 0.0,
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
-    var deletedAt: LocalDateTime = LocalDateTime.now(),
+    var deletedAt: LocalDateTime? = null,
 )
