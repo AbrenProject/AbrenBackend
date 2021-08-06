@@ -16,6 +16,7 @@ import java.util.stream.Collectors
 @Component
 class AuthenticationManager(private val tokenProvider: TokenProvider) : ReactiveAuthenticationManager {
     private val constants = Constants()
+
     @SuppressWarnings("unchecked")
     override fun authenticate(authentication: Authentication): Mono<Authentication> {
         val authToken: String = authentication.credentials.toString()

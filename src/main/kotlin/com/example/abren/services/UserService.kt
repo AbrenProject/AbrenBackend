@@ -56,7 +56,7 @@ class UserService(private val userRepository: UserRepository) {
         val idCardMap = verifyDocument(user.idCardUrl, "ID_CARD")
         val drivingLicenseMap = verifyDocument(user.vehicleInformation?.licenseUrl, "DRIVING_LICENSE")
 
-        if(idCardMap["isVerified"] as Boolean && drivingLicenseMap["isVerified"] as Boolean){
+        if (idCardMap["isVerified"] as Boolean && drivingLicenseMap["isVerified"] as Boolean) {
             return userRepository.save(user)
         }
 
@@ -77,7 +77,8 @@ class UserService(private val userRepository: UserRepository) {
 
         val mapper = jacksonObjectMapper()
         val reader = mapper.readerFor(object : TypeReference<MutableMap<Any, Any>>() {})
-        val map = reader.readValue<MutableMap<Any, Any>>(Paths.get("src/main/resources/DocumentVerifierResult.json").toFile())
+        val map =
+            reader.readValue<MutableMap<Any, Any>>(Paths.get("src/main/resources/DocumentVerifierResult.json").toFile())
         logger.info(map.toString())
 
         val idCardData: MutableMap<*, *> = map["idCardData"] as MutableMap<*, *>
@@ -86,24 +87,24 @@ class UserService(private val userRepository: UserRepository) {
         map.replace("idCardData", idCardData);
         map.replace("drivingLicenseData", drivingLicenseData);
 
-        if(!(map["isFaceVerified"] as Boolean)){
+        if (!(map["isFaceVerified"] as Boolean)) {
             throw IllegalArgumentException("$type: Profile picture doesn't match picture from document.")
         }
 
-        if(!(map["isLogoVerified"] as Boolean)){
+        if (!(map["isLogoVerified"] as Boolean)) {
             throw IllegalArgumentException("$type: The document could not be validated.")
         }
 
-        if(!(map["isTextVerified"] as Boolean)){
+        if (!(map["isTextVerified"] as Boolean)) {
             throw IllegalArgumentException("$type: The text in the document could not be extracted.")
         }
 
-        if(type == "ID_CARD"){ //TODO: Handle for driving license (ethiopian date)
+        if (type == "ID_CARD") { //TODO: Handle for driving license (ethiopian date)
             val expiryDate = idCardData["expiryDate"] as String
             val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH)
             val date = LocalDate.parse(expiryDate, formatter)
 
-            if(date > LocalDate.now()){
+            if (date > LocalDate.now()) {
                 throw IllegalArgumentException("$type: The document has expired.")
             }
         }

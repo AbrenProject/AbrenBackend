@@ -15,7 +15,8 @@ import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 
 @Component
-class SecurityContextRepository(private val authenticationManager: AuthenticationManager) : ServerSecurityContextRepository {
+class SecurityContextRepository(private val authenticationManager: AuthenticationManager) :
+    ServerSecurityContextRepository {
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
     private val constants = Constants()
 

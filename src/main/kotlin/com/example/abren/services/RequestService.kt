@@ -9,11 +9,15 @@ import reactor.core.publisher.Mono
 @Service
 class RequestService(private val requestRepository: RequestRepository) {
     fun findAll(): Flux<Request?> {
-        return requestRepository.findAll();
+        return requestRepository.findAll()
     }
 
     fun findAllById(ids: Set<String>): Flux<Request?> {
-        return requestRepository.findAllById(ids);
+        return requestRepository.findAllById(ids)
+    }
+
+    fun findByStatus(status: String): Flux<Request?> {
+        return requestRepository.findByStatus(status)
     }
 
     fun findOne(id: String): Mono<Request?> {
@@ -37,6 +41,6 @@ class RequestService(private val requestRepository: RequestRepository) {
     }
 
     fun create(request: Request): Mono<Request> {
-            return requestRepository.save(request)
+        return requestRepository.save(request)
     }
 }

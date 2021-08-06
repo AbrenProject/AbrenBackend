@@ -36,7 +36,7 @@ class TokenProvider : Serializable {
     }
 
     fun generateToken(user: User?): String {
-        val authorities: List<String?> = List(1){user?.role}
+        val authorities: List<String?> = List(1) { user?.role }
         return if (user != null) {
             Jwts.builder()
                 .setSubject(user.phoneNumber)
@@ -45,7 +45,7 @@ class TokenProvider : Serializable {
                 .setIssuedAt(Date(System.currentTimeMillis()))
                 .setExpiration(Date(System.currentTimeMillis() + constants.ACCESS_TOKEN_VALIDITY_SECONDS * 1000)) //TODO: Don't let it expire?
                 .compact()
-        }else {
+        } else {
             ""
         }
     }

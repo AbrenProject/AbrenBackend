@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Controller
 import org.springframework.stereotype.Repository
 import org.springframework.web.bind.annotation.GetMapping
@@ -24,19 +25,20 @@ import java.util.stream.Collectors
 @SpringBootApplication
 @EnableReactiveMongoRepositories
 @EnableWebFlux
+@EnableScheduling
 class AbrenApplication
 
 fun main(args: Array<String>) {
-	runApplication<AbrenApplication>(*args)
+    runApplication<AbrenApplication>(*args)
 }
 
 @Bean
 fun mongoClient(): MongoClient? {
-	return MongoClients.create()
+    return MongoClients.create()
 }
 
 fun getDatabaseName(): String? {
-	return "abrendatabase"
+    return "abrendatabase"
 }
 // Trial handler (will be removed)
 //@RestController

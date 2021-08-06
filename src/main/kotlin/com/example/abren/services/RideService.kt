@@ -17,6 +17,10 @@ class RideService(private val rideRepository: RideRepository) {
         return rideRepository.findAllById(ids);
     }
 
+    fun findByStatus(status: String): Flux<Ride?> {
+        return rideRepository.findByStatus(status);
+    }
+
     fun findOne(id: String): Mono<Ride?> {
         return rideRepository.findById(id)
     }
