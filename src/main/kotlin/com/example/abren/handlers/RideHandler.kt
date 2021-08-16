@@ -70,11 +70,15 @@ class RideHandler(
         }
     }
 
-    @Scheduled(fixedRate = 10000)
+    @Scheduled(fixedDelay = 10000)
     fun getRides() {
         logger.info("Getting Rides")
         val activeRides = rideService.findByStatus("ACTIVE") //TODO: Check how to pass this to python
         val activeRequests = requestService.findByStatus("PENDING")
+
+        File("src/main/resources/ClusteringInputRides.json").writeText(activeRides.collectList().block().toString())
+        File("src/main/resources/ClusteringInputRequests.json").writeText(activeRequests.collectList().block().toString())
+
 
         val file = File("src/main/resources/scripts/LocationClustering.py")
         val processBuilder = ProcessBuilder("python", file.absolutePath)
