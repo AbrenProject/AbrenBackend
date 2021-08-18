@@ -36,7 +36,7 @@ class BeanConfig(
     @Bean
     fun requestsRoute(): RouterFunction<ServerResponse> {
         return route(POST("/api/requests").and(accept(MediaType.APPLICATION_JSON)), requestHandler::createRequest)
-//            .andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
+            .andRoute(PUT("/api/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::sendRequest)
     }
 
     @Bean

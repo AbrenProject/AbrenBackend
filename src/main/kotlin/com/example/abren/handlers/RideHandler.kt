@@ -37,26 +37,28 @@ class RideHandler(
 
 
     fun getRides(r: ServerRequest): Mono<ServerResponse> {
-        return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
+        return ReactiveSecurityContextHolder.getContext().flatMap first@ { securityContext ->
             val userMono: Mono<User?> =
                 userService.findByPhoneNumber(securityContext.authentication.principal as String)
 
-            userMono.flatMap { user ->
+            userMono.flatMap second@ { user ->
                 val requestMono = requestService.findOne(r.pathVariable("id"))
                 requestMono.flatMap third@{ request ->
                     if (user?._id != request?.riderId) {
                         return@third ServerResponse.status(401)
                             .body(BodyInserters.fromValue("Request doesn't belong to logged in user."))
                     } else {
-                        val requested = request?.requestedRides
-                        val clusterStart = clusterToObjects[objectToStartCluster[request?._id]]
-                        val clusterDest = clusterToObjects[objectToDestinationCluster[request?._id]]
+                        val requestedFlux = rideService.findAllById(request?.requestedRides!!)
+                        val clusterStart = clusterToObjects[objectToStartCluster[request._id]]
+                        val clusterDest = clusterToObjects[objectToDestinationCluster[request._id]]
                         if (clusterStart != null && clusterDest != null) { //TODO: Make sure this handles everything
                             val cluster = clusterStart intersect clusterDest
                             logger.info("Cluster: $cluster")
-                            return@third rideService.findAllById(cluster).collectList().flatMap { nearby ->
-                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                    .body(BodyInserters.fromValue(RidesResponse(requested, nearby)))
+                            return@third rideService.findAllById(cluster).collectList().flatMap fourth@ { nearby ->
+                               requestedFlux.collectList().flatMap { requested ->
+                                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                        .body(BodyInserters.fromValue(RidesResponse(requested, nearby)))
+                                }
                             }
                         }
                     }
@@ -116,7 +118,7 @@ class RideHandler(
 
         destinationClusters.forEach { item ->
             if (item is MutableMap<*, *>) {
-                logger.info("destClusters: $destinationClusters")
+//                logger.info("destClusters: $destinationClusters")
                 val itemObject = item["object"] as String
                 val itemCluster = item["cluster"] as String
                 objectToDestinationCluster[itemObject] = itemCluster
@@ -128,6 +130,10 @@ class RideHandler(
                 clusterToObjects[itemCluster]?.add(itemObject)
             }
         }
+
+        logger.info("ClusterToObject: $clusterToObjects")
+        logger.info("Starts: $objectToDestinationCluster")
+        logger.info("Destinations: $objectToStartCluster")
     }
 
     @Throws(IOException::class)

@@ -9,7 +9,7 @@ data class Request(
     var riderLocation: Location,
     var destination: Location,
     var status: String?,
-    var requestedRides: List<Ride>?,
+    var requestedRides: MutableList<String> = ArrayList(),
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     var deletedAt: LocalDateTime? = null,
