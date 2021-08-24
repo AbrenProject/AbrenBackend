@@ -21,4 +21,12 @@ class RouteService(private val routeRepository: RouteRepository) {
         return routeRepository.save(route)
     }
 
+    fun delete(id:String): Mono<Void> {
+        return routeRepository.deleteById(id)
+    }
+
+    fun update(route:Route): Mono<Route>{
+       return routeRepository.save(route)
+    }
+
 }
