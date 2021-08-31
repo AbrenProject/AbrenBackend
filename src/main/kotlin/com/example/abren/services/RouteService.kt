@@ -13,7 +13,7 @@ class RouteService(private val routeRepository: RouteRepository) {
         return routeRepository.findAll();
     }
 
-    fun findOne(id:String): Mono<Route>{
+    fun findOne(id:String): Mono<Route?>{
         return routeRepository.findById(id)
     }
 
