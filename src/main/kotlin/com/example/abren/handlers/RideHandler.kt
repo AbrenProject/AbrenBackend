@@ -1,5 +1,7 @@
 package com.example.abren.handlers
 
+import com.example.abren.models.Request
+import com.example.abren.models.Ride
 import com.example.abren.models.User
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
@@ -20,6 +22,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import java.io.*
 import java.nio.file.Paths
+import java.time.LocalDateTime
 import java.util.stream.Collectors
 
 @Component
@@ -35,6 +38,26 @@ class RideHandler(
     var objectToStartCluster: MutableMap<String, String> = HashMap()
     var clusterToObjects: MutableMap<String, MutableSet<String>> = HashMap()
 
+    fun createRide(r:ServerRequest): Mono<ServerResponse>{
+        return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
+            val userMono: Mono<User?> =
+                    userService.findByPhoneNumber(securityContext.authentication.principal as String)
+            userMono.flatMap { user ->
+                val rideMono = r.bodyToMono(Ride::class.java)
+                rideMono.flatMap { ride ->
+                    ride.driverId = user?._id
+                    ride.status="CREATED" //TODO: Check status options
+                    ride.createdAt= LocalDateTime.now()
+                    val savedRide = rideService.create(ride)
+                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                            BodyInserters.fromProducer(savedRide, Request::class.java)
+                    )
+                }
+            }
+
+
+        }
+    }
 
     fun getRides(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap first@ { securityContext ->
