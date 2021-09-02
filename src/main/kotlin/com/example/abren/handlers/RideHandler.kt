@@ -6,8 +6,7 @@ import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
 import com.example.abren.services.RideService
 import com.example.abren.services.UserService
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -22,6 +21,7 @@ import java.io.*
 import java.nio.file.Paths
 import java.util.stream.Collectors
 
+
 @Component
 class RideHandler(
     private val rideService: RideService,
@@ -31,9 +31,8 @@ class RideHandler(
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
 
-    var objectToDestinationCluster: MutableMap<String, String> = HashMap()
-    var objectToStartCluster: MutableMap<String, String> = HashMap()
-    var clusterToObjects: MutableMap<String, MutableSet<String>> = HashMap()
+    var startNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
+    var destinationNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
 
 
     fun getRides(r: ServerRequest): Mono<ServerResponse> {
@@ -49,12 +48,12 @@ class RideHandler(
                             .body(BodyInserters.fromValue("Request doesn't belong to logged in user."))
                     } else {
                         val requestedFlux = rideService.findAllById(request?.requestedRides!!)
-                        val clusterStart = clusterToObjects[objectToStartCluster[request._id]]
-                        val clusterDest = clusterToObjects[objectToDestinationCluster[request._id]]
-                        if (clusterStart != null && clusterDest != null) { //TODO: Make sure this handles everything
-                            val cluster = clusterStart intersect clusterDest
-                            logger.info("Cluster: $cluster")
-                            return@third rideService.findAllById(cluster).collectList().flatMap fourth@ { nearby ->
+                        val neighborsStart = startNeighbors[request._id]
+                        val neighborsDest = destinationNeighbors[request._id]
+                        if (neighborsStart != null && neighborsDest != null) { //TODO: Make sure this handles everything
+                            val nearbyIds = neighborsStart intersect neighborsDest
+                            logger.info("Cluster: $nearbyIds")
+                            return@third rideService.findAllById(nearbyIds).collectList().flatMap fourth@ { nearby -> //TODO: Handle Duplicates
                                requestedFlux.collectList().flatMap { requested ->
                                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
                                         .body(BodyInserters.fromValue(RidesResponse(requested, nearby)))
@@ -73,67 +72,44 @@ class RideHandler(
     }
 
     @Scheduled(fixedDelay = 10000)
-    fun getRides() {
-        logger.info("Getting Rides")
+    fun prepareRides() { //TODO: Run in thread?
+        logger.info("Preparing Rides")
         val activeRides = rideService.findByStatus("ACTIVE") //TODO: Check how to pass this to python
         val activeRequests = requestService.findByStatus("PENDING")
 
-        File("src/main/resources/ClusteringInputRides.json").writeText(activeRides.collectList().block().toString())
-        File("src/main/resources/ClusteringInputRequests.json").writeText(activeRequests.collectList().block().toString())
+//        val requestsList = activeRequests.collectList().block()
+//        val newRequestList = requestsList?.stream()?.map { elt ->  }?.collect(Collectors.toList())
+//
+//        logger.info("Requests: $requests")
 
+        val mapper = ObjectMapper()
+        mapper.writeValue(Paths.get("src/main/resources/ClusteringInputRequests.json").toFile(), activeRequests.collectList().block())
 
-        val file = File("src/main/resources/scripts/LocationClustering.py")
-        val processBuilder = ProcessBuilder("python", file.absolutePath)
-        processBuilder.redirectErrorStream(true)
+//        File("src/main/resources/ClusteringInputRides.json").writeText(activeRides.collectList().block().toString())
+//        File("src/main/resources/ClusteringInputRequests.json").writeText(activeRequests.collectList().block().toString())
 
-        val process = processBuilder.start()
-        val results: List<String> = readProcessOutput(process.inputStream)
-        logger.info(results.toString())
+//        val file = File("src/main/resources/scripts/LocationClustering.py")
+//        val processBuilder = ProcessBuilder("python", file.absolutePath)
+//        processBuilder.redirectErrorStream(true)
+//
+//        val process = processBuilder.start()
+//        val results: List<String> = readProcessOutput(process.inputStream)
+//        logger.info(results.toString())
+//
+//        process.waitFor()
 
-        process.waitFor()
+//        val mapper = jacksonObjectMapper()
+//        val reader = mapper.readerFor(object : TypeReference<MutableMap<Any, Any>>() {})
+//        val map = reader.readValue<MutableMap<Any, Any>>(
+//            Paths.get("src/main/resources/LocationClusteringResult.json").toFile()
+//        )
+//
+//        startNeighbors = map["startNeighbors"] as MutableMap<String, MutableSet<String>> //TODO: Make sure this is fine
+//        logger.info("Start Neighbors: $startNeighbors")
+//
+//        destinationNeighbors = map["destinationNeighbors"] as MutableMap<String, MutableSet<String>>
+//        logger.info("Destination Neighbors: $destinationNeighbors")
 
-        val mapper = jacksonObjectMapper()
-        val reader = mapper.readerFor(object : TypeReference<MutableMap<Any, Any>>() {})
-        val map = reader.readValue<MutableMap<Any, Any>>(
-            Paths.get("src/main/resources/LocationClusteringResult.json").toFile()
-        )
-        logger.info(map.toString())
-
-        val startClusters: List<*> = map["startClusters"] as List<*>
-        val destinationClusters: List<*> = map["destinationClusters"] as List<*>
-
-        startClusters.forEach { item -> //TODO: Check if this is better in python
-            if (item is MutableMap<*, *>) {
-                val itemObject = item["object"] as String
-                val itemCluster = item["cluster"] as String
-                objectToStartCluster[itemObject] = itemCluster
-
-                if (!clusterToObjects.containsKey(itemCluster)) {
-                    clusterToObjects[itemCluster] = HashSet()
-                }
-
-                clusterToObjects[itemCluster]?.add(itemObject)
-            }
-        }
-
-        destinationClusters.forEach { item ->
-            if (item is MutableMap<*, *>) {
-//                logger.info("destClusters: $destinationClusters")
-                val itemObject = item["object"] as String
-                val itemCluster = item["cluster"] as String
-                objectToDestinationCluster[itemObject] = itemCluster
-
-                if (!clusterToObjects.containsKey(itemCluster)) {
-                    clusterToObjects[itemCluster] = HashSet()
-                }
-
-                clusterToObjects[itemCluster]?.add(itemObject)
-            }
-        }
-
-        logger.info("ClusterToObject: $clusterToObjects")
-        logger.info("Starts: $objectToDestinationCluster")
-        logger.info("Destinations: $objectToStartCluster")
     }
 
     @Throws(IOException::class)
