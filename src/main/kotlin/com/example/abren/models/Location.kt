@@ -1,3 +1,3 @@
 package com.example.abren.models
 
-data class Location(val name: String, val latitude: Double, val longitude: Double)
+data class Location(var name: String, var latitude: Double, var longitude: Double)
