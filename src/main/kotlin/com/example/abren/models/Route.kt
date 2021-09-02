@@ -10,8 +10,8 @@ data class Route(
         var waypointLocations: ArrayList<Location>,
         var destinationLocation: Location,
         var lastTaken: Date?,
-        var createdAt: LocalDateTime = LocalDateTime.now(),
-        var updatedAt: LocalDateTime = LocalDateTime.now(),
-        var deletedAt: LocalDateTime = LocalDateTime.now(),
+        var createdAt: LocalDateTime?,
+        var updatedAt: LocalDateTime?,
+        var deletedAt: LocalDateTime?,
 
         )

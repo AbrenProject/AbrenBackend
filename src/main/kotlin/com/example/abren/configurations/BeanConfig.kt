@@ -43,6 +43,9 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
     fun routeRoute():RouterFunction<ServerResponse>{
         return route(GET("/api/routes/{id}").and(accept(MediaType.APPLICATION_JSON)), routeHandler::getRouteById)
                 .andRoute(POST("/api/routes").and(accept(MediaType.APPLICATION_JSON)), routeHandler::createRoute)
+                .andRoute((GET("/api/routes")).and(accept(MediaType.APPLICATION_JSON)), routeHandler::getRoutes)
+                .andRoute(DELETE("/api/routes/{id}").and(accept(MediaType.APPLICATION_JSON)), routeHandler::deleteRoute)
+                .andRoute(PUT("/api/routes/{id}").and(accept(MediaType.APPLICATION_JSON)), routeHandler::updateRoute)
 
     }
 }
