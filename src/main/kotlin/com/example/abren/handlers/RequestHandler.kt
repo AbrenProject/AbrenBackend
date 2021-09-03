@@ -57,12 +57,26 @@ class RequestHandler(
 
     fun getRideRequests(r:ServerRequest): Mono<ServerResponse>{
         val rideMono = rideService.findOne(r.pathVariable("id"))
-        return rideMono.flatMap { ride->
-            val rideRequestsIds = ride?.requests!!.toFlux()
+       return rideMono.flatMap { ride ->
+            val rideRequestsId = ride?.requests!!
+            val rideRequests = requestService.findAllByIds(rideRequestsId)
             ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromProducer(rideRequestsIds, String::class.java))
-        }
+                    .body(BodyInserters.fromProducer(rideRequests, Request::class.java))
+        }.switchIfEmpty(
+               ServerResponse.badRequest()
+                       .body(BodyInserters.fromValue("Ride not found."))
+       )
+
+
     }
+
+    fun getAllRequests(r:ServerRequest): Mono<ServerResponse>{
+        val requestsFlux = requestService.findAll()
+         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                    .body(BodyInserters.fromProducer(requestsFlux, Request::class.java))
+
+    }
+
     fun sendRequest(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> =

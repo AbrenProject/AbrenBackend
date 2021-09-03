@@ -38,6 +38,7 @@ class BeanConfig(
         return route(POST("/api/requests").and(accept(MediaType.APPLICATION_JSON)), requestHandler::createRequest)
             .andRoute(PUT("/api/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::sendRequest)
                 .andRoute(GET("/api/rides/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRideRequests)
+                .andRoute(GET("/api/requests").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getAllRequests)
     }
 
     @Bean

@@ -16,6 +16,10 @@ class RequestService(private val requestRepository: RequestRepository) {
         return requestRepository.findAllById(ids)
     }
 
+    fun findAllByIds(ids: MutableList<String>): Flux<Request?> {
+        return requestRepository.findAllById(ids)
+    }
+
     fun findByStatus(status: String): Flux<Request?> {
         return requestRepository.findByStatus(status)
     }
