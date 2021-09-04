@@ -6,9 +6,11 @@ import com.example.abren.handlers.UserHandler
 import com.example.abren.services.UserService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.server.RequestPredicates.*
 import org.springframework.web.reactive.function.server.RouterFunction
+import org.springframework.web.reactive.function.server.RouterFunctions
 import org.springframework.web.reactive.function.server.RouterFunctions.route
 import org.springframework.web.reactive.function.server.ServerResponse
 
@@ -45,5 +47,9 @@ class BeanConfig(
 //            .andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
     }
 
-
+    @Bean
+    fun imageRoute(): RouterFunction<ServerResponse> {
+        return RouterFunctions
+            .resources("/**", ClassPathResource("/"))
+    }
 }

@@ -289,7 +289,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
     }
 
     fun saveFile(filePart: FilePart, folder: String): String {
-        val target = Paths.get("uploads/images/$folder")
+        val target = Paths.get("/resources/uploads/images/$folder")
             .resolve(Instant.now().toEpochMilli().toString()) //TODO: Make sure this location works
         try {
             Files.deleteIfExists(target)

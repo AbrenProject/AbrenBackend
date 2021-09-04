@@ -82,8 +82,8 @@ class RideHandler(
 //
 //        logger.info("Requests: $requests")
 
-        val mapper = ObjectMapper()
-        mapper.writeValue(Paths.get("src/main/resources/ClusteringInputRequests.json").toFile(), activeRequests.collectList().block())
+//        val mapper = ObjectMapper()
+//        mapper.writeValue(Paths.get("src/main/resources/ClusteringInputRequests.json").toFile(), activeRequests.collectList().block())
 
 //        File("src/main/resources/ClusteringInputRides.json").writeText(activeRides.collectList().block().toString())
 //        File("src/main/resources/ClusteringInputRequests.json").writeText(activeRequests.collectList().block().toString())
