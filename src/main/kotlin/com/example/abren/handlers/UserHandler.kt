@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.MediaType
 import org.springframework.http.codec.multipart.FilePart
 import org.springframework.http.codec.multipart.FormFieldPart
@@ -289,13 +290,16 @@ class UserHandler(private val userService: UserService, private val tokenProvide
     }
 
     fun saveFile(filePart: FilePart, folder: String): String {
-        val target = Paths.get("/resources/uploads/images/$folder")
-            .resolve(Instant.now().toEpochMilli().toString()) //TODO: Make sure this location works
+        val target = Paths.get("uploads/images/$folder")
+            .resolve(Instant.now().toEpochMilli().toString() + ".jpg") //TODO: Make sure this location works
         try {
             Files.deleteIfExists(target)
             val file = Files.createFile(target).toFile()
-            filePart.transferTo(file)
-            return target.toString();
+            val content = filePart.content().blockFirst() //TODO: Try not blocking or run in thread
+            val buffer = ByteArray(content?.readableByteCount()!!) //TODO: Be careful
+            content.read(buffer);
+            file.writeBytes(buffer)
+            return target.toString()
         } catch (e: IOException) {
             throw RuntimeException(e)
         }

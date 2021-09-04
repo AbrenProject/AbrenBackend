@@ -4,8 +4,11 @@ import com.example.abren.handlers.RequestHandler
 import com.example.abren.handlers.RideHandler
 import com.example.abren.handlers.RouteHandler
 import com.example.abren.handlers.UserHandler
+import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RouteService
 import com.example.abren.services.UserService
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ClassPathResource
@@ -18,6 +21,8 @@ import org.springframework.web.reactive.function.server.ServerResponse
 
 @Configuration
 class BeanConfig(private val userService: UserService, private val userHandler: UserHandler, private val requestHandler: RequestHandler, private val rideHandler: RideHandler, private val routeService: RouteService, private val routeHandler: RouteHandler) {
+
+    private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
 
     @Bean
     fun authRoute(): RouterFunction<ServerResponse> {
@@ -45,13 +50,6 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
                 .andRoute(POST("/api/rides").and(accept(MediaType.APPLICATION_JSON)), rideHandler::createRide)
                 //.andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
     }
-
-    @Bean
-    fun imageRoute(): RouterFunction<ServerResponse> {
-        return RouterFunctions
-            .resources("/**", ClassPathResource("/"))
-    }
-
 
     @Bean
     fun routeRoute():RouterFunction<ServerResponse>{
