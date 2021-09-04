@@ -15,10 +15,15 @@ import org.springframework.web.reactive.function.server.RouterFunctions.route
 import org.springframework.web.reactive.function.server.ServerResponse
 
 @Configuration
-class BeanConfig(private val userService: UserService, private val userHandler: UserHandler, private val routeService: RouteService, private val routeHandler: RouteHandler) {
+class BeanConfig(private val userService: UserService, private val userHandler: UserHandler, private val requestHandler: RequestHandler, private val rideHandler: RideHandler, private val routeService: RouteService, private val routeHandler: RouteHandler) {
 
     @Bean
-    fun usersRoute(): RouterFunction<*>? {
+    fun authRoute(): RouterFunction<ServerResponse> {
+        return route(POST("/api/auth/login").and(accept(MediaType.APPLICATION_JSON)), userHandler::login)
+            .andRoute(POST("/api/auth/signup").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
+    }
+
+    @Bean
     fun userRoute(): RouterFunction<ServerResponse> {
         return route(GET("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::getProfile)
             .andRoute(PUT("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::editUser)
