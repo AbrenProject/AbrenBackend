@@ -11,7 +11,7 @@ data class Ride(
         var status: String?,
         var requests: MutableList<String> = ArrayList(),
         var acceptedRequests: MutableList<String> = ArrayList(),
-        var otp:String?, //TODO: Change data type
+        var otp:Otp?, //TODO: Change data type
         var createdAt: LocalDateTime?,
         var updatedAt: LocalDateTime?,
         var deletedAt: LocalDateTime?,
