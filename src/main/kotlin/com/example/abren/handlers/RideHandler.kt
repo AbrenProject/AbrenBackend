@@ -1,5 +1,6 @@
 package com.example.abren.handlers
 
+import com.example.abren.models.Otp
 import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.models.User
@@ -21,6 +22,7 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import java.io.*
+import java.lang.Boolean.FALSE
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.util.stream.Collectors
@@ -48,6 +50,9 @@ class RideHandler(
                     ride.driverId = user?._id
                     ride.status="CREATED" //TODO: Check status options
                     ride.createdAt= LocalDateTime.now()
+                    val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
+                    val otp = Otp(otpCode,LocalDateTime.now(),FALSE)
+                    ride.otp=otp
                     val savedRide = rideService.create(ride)
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                             BodyInserters.fromProducer(savedRide, Request::class.java)
