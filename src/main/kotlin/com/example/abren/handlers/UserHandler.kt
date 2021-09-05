@@ -1,10 +1,12 @@
 package com.example.abren.handlers
 
+import com.cloudinary.Cloudinary
+import com.cloudinary.utils.ObjectUtils
 import com.example.abren.configurations.Constants
-import com.example.abren.responses.AuthResponse
 import com.example.abren.models.Preference
 import com.example.abren.models.User
 import com.example.abren.models.VehicleInformation
+import com.example.abren.responses.AuthResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.security.TokenProvider
 import com.example.abren.services.UserService
@@ -12,7 +14,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.buffer.DataBufferUtils
+import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
 import org.springframework.http.codec.multipart.FilePart
 import org.springframework.http.codec.multipart.FormFieldPart
@@ -26,16 +28,15 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
+import java.io.File
 import java.io.IOException
-import java.lang.IllegalArgumentException
 import java.lang.Integer.parseInt
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Instant
 
 
 @Component
-class UserHandler(private val userService: UserService, private val tokenProvider: TokenProvider) {
+class UserHandler(private val userService: UserService, private val tokenProvider: TokenProvider, private val env: Environment) {
     val constants = Constants()
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
 
@@ -290,16 +291,45 @@ class UserHandler(private val userService: UserService, private val tokenProvide
     }
 
     fun saveFile(filePart: FilePart, folder: String): String {
-        val target = Paths.get("uploads/images/$folder")
-            .resolve(Instant.now().toEpochMilli().toString() + ".jpg") //TODO: Make sure this location works
+//        val target = Paths.get("uploads/images/$folder")
+//            .resolve(Instant.now().toEpochMilli().toString() + ".jpg") //TODO: Make sure this location works
+//        try {
+//            Files.deleteIfExists(target)
+//            val file = Files.createFile(target).toFile()
+//            val content = filePart.content().blockFirst() //TODO: Try not blocking or run in thread
+//            val buffer = ByteArray(content?.readableByteCount()!!) //TODO: Be careful
+//            content.read(buffer);
+//            file.writeBytes(buffer)
+//            return target.toString()
+//        } catch (e: IOException) {
+//            throw RuntimeException(e)
+//        }
+
+        val fileName = "${Instant.now().toEpochMilli()}"
+
+        val cloudinary = Cloudinary(ObjectUtils.asMap(
+            "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME"),
+            "api_key", System.getenv("CLOUDINARY_API_KEY"),
+            "api_secret", System.getenv("CLOUDINARY_API_SECRET"),
+            "secure", true));
+
+
+        val params: Map<*, *> = ObjectUtils.asMap(
+            "public_id", "abren/uploads/$folder/$fileName",
+            "overwrite", true,
+            "resource_type", "image"
+        )
+
         try {
-            Files.deleteIfExists(target)
-            val file = Files.createFile(target).toFile()
+            val convFile = File(fileName)
+            convFile.createNewFile()
             val content = filePart.content().blockFirst() //TODO: Try not blocking or run in thread
             val buffer = ByteArray(content?.readableByteCount()!!) //TODO: Be careful
             content.read(buffer);
-            file.writeBytes(buffer)
-            return target.toString()
+            convFile.writeBytes(buffer)
+
+            val uploadResult = cloudinary.uploader().upload(convFile, params)
+            return uploadResult["secure_url"] as String
         } catch (e: IOException) {
             throw RuntimeException(e)
         }
