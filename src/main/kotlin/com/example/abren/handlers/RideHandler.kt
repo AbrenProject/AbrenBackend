@@ -9,7 +9,6 @@ import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
 import com.example.abren.services.RideService
 import com.example.abren.services.UserService
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -22,7 +21,6 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import java.io.*
 import java.lang.Boolean.FALSE
-import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.util.stream.Collectors
 
@@ -47,7 +45,7 @@ class RideHandler(
                 val rideMono = r.bodyToMono(Ride::class.java)
                 rideMono.flatMap { ride ->
                     ride.driverId = user?._id
-                    ride.status="CREATED" //TODO: Check status options
+                    ride.status="NOT STARTED" //TODO: Check status options
                     ride.createdAt= LocalDateTime.now()
                     val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
                     val otp = Otp(otpCode,LocalDateTime.now(),FALSE)
