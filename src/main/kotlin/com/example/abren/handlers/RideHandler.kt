@@ -5,10 +5,12 @@ import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.models.User
 import com.example.abren.responses.BadRequestResponse
+import com.example.abren.responses.NearbyRidesResponse
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
 import com.example.abren.services.RideService
+import com.example.abren.services.RouteService
 import com.example.abren.services.UserService
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException
@@ -32,6 +34,7 @@ import java.util.stream.Collectors
 @Component
 class RideHandler(
     private val rideService: RideService,
+    private val routeService: RouteService,
     private val userService: UserService,
     private val requestService: RequestService
 ) {
@@ -48,24 +51,25 @@ class RideHandler(
             userMono.flatMap { user ->
                 val rideMono = r.bodyToMono(Ride::class.java)
                 rideMono.flatMap { ride ->
-                    ride.driverId = user?._id
-                    ride.status="NOT STARTED" //TODO: Check status options
-                    ride.createdAt= LocalDateTime.now()
-                    val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
-                    val otp = Otp(otpCode,LocalDateTime.now(),FALSE)
-                    ride.otp=otp
-                    val savedRide = rideService.create(ride)
-                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    val routeMono = routeService.findOne(ride.routeId!!)
+                    routeMono.flatMap { route ->
+                        ride.driverId = user?._id
+                        ride.status = "ACTIVE" //TODO: Check status options
+                        ride.route = route
+                        val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
+                        val otp = Otp(otpCode,LocalDateTime.now(),FALSE)
+                        ride.otp=otp
+                        val savedRide = rideService.create(ride)
+                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                             BodyInserters.fromProducer(savedRide, Request::class.java)
-                    )
+                        )
+                    }
                 }
             }
-
-
         }
     }
 
-    fun getRides(r: ServerRequest): Mono<ServerResponse> {
+    fun getRides(r: ServerRequest): Mono<ServerResponse> { //TODO: Set Location too
         return ReactiveSecurityContextHolder.getContext().flatMap first@ { securityContext ->
             val userMono: Mono<User?> =
                 userService.findByPhoneNumber(securityContext.authentication.principal as String)
@@ -98,6 +102,27 @@ class RideHandler(
                         .body(BodyInserters.fromValue(BadRequestResponse("Request not found.")))
                 )
             }
+        }
+    }
+
+    @Scheduled(fixedDelay = 20000)
+    fun prepareRides() { //TODO: Run in thread?
+        logger.info("Preparing Rides")
+        val activeRides = rideService.findByStatus("ACTIVE") //TODO: Check how to pass this to python
+        val activeRequests = requestService.findByStatus("PENDING")
+
+        val requestsList = activeRequests.collectList().block()
+        val ridesList = activeRides.collectList().block()
+
+//        logger.info("Requests: $requestsList")
+//        logger.info("Rides: $ridesList")
+
+        val nearby = rideService.getNearby(ridesList, requestsList).block()
+        if (nearby != null) {
+            startNeighbors = nearby.startNeighbors
+        }
+        if (nearby != null) {
+            destinationNeighbors = nearby.destinationNeighbors
         }
     }
 }

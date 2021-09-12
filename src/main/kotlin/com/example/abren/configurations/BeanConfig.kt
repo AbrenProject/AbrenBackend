@@ -49,7 +49,6 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
         return route(GET("/api/rides/nearby/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getRides)
                 .andRoute(POST("/api/rides").and(accept(MediaType.APPLICATION_JSON)), rideHandler::createRide)
                 .andRoute(GET("/api/rides/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRideRequests)
-                //.andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
     }
 
     @Bean
