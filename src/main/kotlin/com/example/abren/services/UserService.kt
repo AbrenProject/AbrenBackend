@@ -60,9 +60,9 @@ class UserService(private val userRepository: UserRepository, private val webCli
                 throw IllegalArgumentException("ID_CARD: The document could not be validated.")
             }
 
-            if (!idResult.isFaceVerified) {
-                throw IllegalArgumentException("ID_CARD: Profile picture doesn't match picture from document.")
-            }
+//            if (!idResult.isFaceVerified) {
+//                throw IllegalArgumentException("ID_CARD: Profile picture doesn't match picture from document.")
+//            } //TODO: PUT BACK
 
             if (!idResult.isTextVerified) {
                 throw IllegalArgumentException("ID_CARD: The text in the document could not be validated.")
@@ -116,9 +116,9 @@ class UserService(private val userRepository: UserRepository, private val webCli
                         throw IllegalArgumentException("DRIVING_LICENSE: The document could not be validated.")
                     }
 
-                    if (!dlResult.isFaceVerified) {
-                        throw IllegalArgumentException("DRIVING_LICENSE: Profile picture doesn't match picture from document.")
-                    }
+//                    if (!dlResult.isFaceVerified) {
+//                        throw IllegalArgumentException("DRIVING_LICENSE: Profile picture doesn't match picture from document.")
+//                    } //TODO: PUT BACK
 
                     if (!dlResult.isTextVerified) {
                         throw IllegalArgumentException("DRIVING_LICENSE: The text in the document could not be validated.")

@@ -51,7 +51,10 @@ class RequestHandler(
                 }.switchIfEmpty(
                     ServerResponse.badRequest()
                         .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}")))
-                )
+                ).onErrorResume {
+                    ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}")))
+                }
             }
         }
     }
