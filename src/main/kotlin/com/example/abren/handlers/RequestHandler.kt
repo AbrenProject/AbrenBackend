@@ -5,6 +5,7 @@ import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.models.User
 import com.example.abren.responses.AuthResponse
+import com.example.abren.responses.BadRequestResponse
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
@@ -49,7 +50,7 @@ class RequestHandler(
                     )
                 }.switchIfEmpty(
                     ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}"))
+                        .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}")))
                 )
             }
         }
@@ -64,7 +65,7 @@ class RequestHandler(
                     .body(BodyInserters.fromProducer(rideRequests, Request::class.java))
         }.switchIfEmpty(
                ServerResponse.badRequest()
-                       .body(BodyInserters.fromValue("Ride not found."))
+                       .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
        )
 
 
@@ -103,21 +104,17 @@ class RequestHandler(
 
                             }.switchIfEmpty(
                                 ServerResponse.badRequest()
-                                    .body(BodyInserters.fromValue("Ride not found."))
+                                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
                             )
                         }.orElse(
                             ServerResponse.badRequest()
-                                .body(BodyInserters.fromValue("The following request parameters are required: [rideId]."))
+                                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [rideId].")))
                         )
 
                     }
                 }.switchIfEmpty(
                     ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("Request not found."))
-
-
-
-
+                        .body(BodyInserters.fromValue(BadRequestResponse("Request not found.")))
                 )
             }
         }

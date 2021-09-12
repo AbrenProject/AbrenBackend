@@ -1,37 +1,31 @@
 package com.example.abren.handlers
 
-import com.example.abren.models.Location
 import com.example.abren.models.Route
 import com.example.abren.models.User
 import com.example.abren.services.RouteService
 import com.example.abren.services.UserService
 import org.springframework.http.MediaType
-import org.springframework.http.codec.multipart.FormFieldPart
-import org.springframework.http.codec.multipart.Part
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyExtractor
-import org.springframework.web.reactive.function.BodyExtractors
-import org.springframework.web.reactive.function.BodyInserter
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.body
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
-import javax.print.attribute.standard.Media
 
 @Component
 class RouteHandler (private val routeService: RouteService,private val userService: UserService) {
 
     fun getRoutes(r: ServerRequest): Mono<ServerResponse> {
-        val routesFlux = routeService.findAll()
-        return ServerResponse.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(
-                        BodyInserters.fromProducer(routesFlux, Route::class.java))
+        return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
+            val userMono: Mono<User?> = userService.findByPhoneNumber(securityContext.authentication.principal as String)
+            userMono.flatMap { user ->
+                val routes = routeService.findAllByDriverId(user?._id!!)
+                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(routes, Route::class.java))
 
+            }
+        }
     }
 
     fun getRouteById(r: ServerRequest): Mono<ServerResponse> {

@@ -1,26 +1,26 @@
 package com.example.abren.services
 
+import com.example.abren.models.Name
 import com.example.abren.models.User
 import com.example.abren.repositories.UserRepository
+import com.example.abren.requests.DocumentVerifierRequest
+import com.example.abren.responses.DocumentVerifierResponse
 import com.example.abren.security.SecurityContextRepository
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.io.*
-import java.lang.IllegalArgumentException
-import java.nio.file.Paths
 import java.time.LocalDate
+import java.time.Period
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
 import java.util.*
-import java.util.stream.Collectors
 
 
 @Service
-class UserService(private val userRepository: UserRepository) {
+class UserService(private val userRepository: UserRepository, private val webClientBuilder: WebClient.Builder) {
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
     fun findAll(): Flux<User?> {
@@ -53,78 +53,92 @@ class UserService(private val userRepository: UserRepository) {
 
     @Throws(IllegalArgumentException::class)
     fun register(user: User): Mono<User> {
-        val idCardMap = verifyDocument(user.idCardUrl, "ID_CARD")
-        val drivingLicenseMap = verifyDocument(user.vehicleInformation?.licenseUrl, "DRIVING_LICENSE")
-
-        if (idCardMap["isVerified"] as Boolean && drivingLicenseMap["isVerified"] as Boolean) {
-            return userRepository.save(user)
-        }
-
-        return Mono.empty()
-    }
-
-    @Throws(IllegalArgumentException::class)
-    fun verifyDocument(url: String?, type: String): MutableMap<Any, Any> {
-        val file = File("src/main/resources/scripts/DocumentVerifier.py")
-        val processBuilder = ProcessBuilder("python", file.absolutePath)
-        processBuilder.redirectErrorStream(true)
-
-        val process = processBuilder.start()
-        val results: List<String> = readProcessOutput(process.inputStream)
-        logger.info(results.toString())
-
-        process.waitFor()
-
-        val mapper = jacksonObjectMapper()
-        val reader = mapper.readerFor(object : TypeReference<MutableMap<Any, Any>>() {})
-        val map =
-            reader.readValue<MutableMap<Any, Any>>(Paths.get("src/main/resources/DocumentVerifierResult.json").toFile())
-        logger.info(map.toString())
-
-        val idCardData: MutableMap<*, *> = map["idCardData"] as MutableMap<*, *>
-        val drivingLicenseData: MutableMap<*, *> = map["idCardData"] as MutableMap<*, *>
-
-        map.replace("idCardData", idCardData);
-        map.replace("drivingLicenseData", drivingLicenseData);
-
-        if (!(map["isFaceVerified"] as Boolean)) {
-            throw IllegalArgumentException("$type: Profile picture doesn't match picture from document.")
-        }
-
-        if (!(map["isLogoVerified"] as Boolean)) {
-            throw IllegalArgumentException("$type: The document could not be validated.")
-        }
-
-        if (!(map["isTextVerified"] as Boolean)) {
-            throw IllegalArgumentException("$type: The text in the document could not be extracted.")
-        }
-
-        if (type == "ID_CARD") { //TODO: Handle for driving license (ethiopian date)
-            val expiryDate = idCardData["expiryDate"] as String
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH)
-            val date = LocalDate.parse(expiryDate, formatter)
-
-            if (date > LocalDate.now()) {
-                throw IllegalArgumentException("$type: The document has expired.")
+        val idResultMono = verifyDocument("ID", user.idCardUrl!!, user.profilePictureUrl!!)
+        return idResultMono.flatMap { idResult ->
+            logger.info("ID: $idResult")
+            if (!idResult.isLogoVerified) {
+                throw IllegalArgumentException("ID_CARD: The document could not be validated.")
             }
-        }
 
-        return map;
+            if (!idResult.isFaceVerified) {
+                throw IllegalArgumentException("ID_CARD: Profile picture doesn't match picture from document.")
+            }
+
+            if (!idResult.isTextVerified) {
+                throw IllegalArgumentException("ID_CARD: The text in the document could not be validated.")
+            }
+
+            if(idResult.data.name != null){
+                val nameArr = idResult.data.name.split(" ")
+                user.name = Name(nameArr[0], nameArr[1], nameArr[2])
+            }
+
+            if(idResult.data.sex != null){
+                when {
+                    setOf("F", "f", "T", "t", "E", "e").contains(idResult.data.sex) -> {
+                        user.gender =  "Female"
+                    }
+                    setOf("M", "m", "N", "n", "W", "w").contains(idResult.data.sex) -> {
+                        user.gender =  "Male"
+                    }
+                    else -> {
+                        throw IllegalArgumentException("ID_CARD: The text in the document could not be validated.")
+                    }
+                }
+            }
+
+            if(idResult.data.dateOfBirth != null) {
+                val formatter: DateTimeFormatter = DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("MMM dd, yyyy").toFormatter()
+                val date = LocalDate.parse(idResult.data.dateOfBirth, formatter)
+                val age = Period.between(date, LocalDate.now()).years
+                when {
+                    age in 18..24 -> {
+                        user.ageGroup = "18 - 25"
+                    }
+                    age in 25..40 -> {
+                        user.ageGroup = "25 - 40"
+                    }
+                    age in 40..60 -> {
+                        user.ageGroup = "40 - 60"
+                    }
+                    age >= 60 -> {
+                        user.ageGroup = "> 60"
+                    }
+                }
+            }
+
+            if(user.role == "DRIVER"){
+                logger.info("DL")
+                val dlResultMono = verifyDocument("DL", user.vehicleInformation?.licenseUrl!!, user.profilePictureUrl!!)
+                return@flatMap dlResultMono.flatMap { dlResult ->
+                    logger.info("DL: $dlResult")
+                    if (!dlResult.isLogoVerified) {
+                        throw IllegalArgumentException("DRIVING_LICENSE: The document could not be validated.")
+                    }
+
+                    if (!dlResult.isFaceVerified) {
+                        throw IllegalArgumentException("DRIVING_LICENSE: Profile picture doesn't match picture from document.")
+                    }
+
+                    if (!dlResult.isTextVerified) {
+                        throw IllegalArgumentException("DRIVING_LICENSE: The text in the document could not be validated.")
+                    }
+
+                    userRepository.save(user)
+                }
+            }
+            userRepository.save(user)
+        }
     }
 
-    @Throws(IOException::class)
-    private fun readProcessOutput(inputStream: InputStream): List<String> {
-        BufferedReader(InputStreamReader(inputStream)).use { output ->
-            return output.lines()
-                .collect(Collectors.toList())
-        }
-    }
+    fun verifyDocument(documentType: String, imagePath: String, profileImagePath: String): Mono<DocumentVerifierResponse> {
+        val webClient = webClientBuilder.baseUrl("https://abren-project-scripts.herokuapp.com").build()
 
-//    fun upgradeAccount(user: User): Mono<User?> {
-//        return userRepository.save(user)
-//    }
-//
-//    fun rate(user: User): Mono<User?> {
-//        return userRepository.save(user)
-//    }
+        val documentVerifierRequest = DocumentVerifierRequest(documentType, imagePath, profileImagePath)
+        return webClient.post()
+            .uri("/verify-document")
+            .body(Mono.just(documentVerifierRequest), DocumentVerifierRequest::class.java)
+            .retrieve()
+            .bodyToMono(DocumentVerifierResponse::class.java)
+    }
 }

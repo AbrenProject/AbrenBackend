@@ -7,6 +7,8 @@ import com.example.abren.models.Preference
 import com.example.abren.models.User
 import com.example.abren.models.VehicleInformation
 import com.example.abren.responses.AuthResponse
+import com.example.abren.responses.BadRequestResponse
+import com.example.abren.responses.DocumentVerifierResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.security.TokenProvider
 import com.example.abren.services.UserService
@@ -47,7 +49,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
             val requiredKeys = arrayListOf("phoneNumber", "password")
             if (!requiredKeys.all { map.containsKey(it) }) {
                 return@flatMap ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("The following fields are required: $requiredKeys"))
+                    .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: $requiredKeys")))
             }
 
             val phoneNumber = (map["phoneNumber"] as FormFieldPart).value()
@@ -60,11 +62,11 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                             .body(BodyInserters.fromValue(AuthResponse(user, tokenProvider.generateToken(user))))
                     } else {
                         return@second ServerResponse.badRequest()
-                            .body(BodyInserters.fromValue("Invalid Credentials"))
+                            .body(BodyInserters.fromValue(BadRequestResponse("Invalid Credentials")))
                     }
                 }.switchIfEmpty(
                     ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("User does not exist"))
+                        .body(BodyInserters.fromValue(BadRequestResponse("User does not exist")))
                 )
         }
     }
@@ -74,8 +76,9 @@ class UserHandler(private val userService: UserService, private val tokenProvide
             val map: Map<String, Part> = parts.toSingleValueMap()
             logger.info(map.toString())
             if (!constants.REQUIRED_FIELDS.all { map.containsKey(it) }) {
+                logger.info("Rider Keys")
                 return@first ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("The following fields are required: ${constants.REQUIRED_FIELDS}"))
+                    .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_FIELDS}")))
             }
 
             val profilePicture: FilePart = map["profilePicture"]!! as FilePart
@@ -85,25 +88,31 @@ class UserHandler(private val userService: UserService, private val tokenProvide
             val emergencyPhoneNumber: String = (map["emergencyPhoneNumber"]!! as FormFieldPart).value()
             val password: String = (map["password"]!! as FormFieldPart).value()
 
+
+
             if (phoneNumber.length != 12) {
+                logger.info("PhoneNum")
                 return@first ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("Invalid Input for phoneNumber"))
+                    .body(BodyInserters.fromValue(BadRequestResponse("Invalid Input for phoneNumber")))
             }
 
             if (emergencyPhoneNumber.length != 12) {
+                logger.info("Emer")
                 return@first ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("Invalid Input for emergencyPhoneNumber"))
+                    .body(BodyInserters.fromValue(BadRequestResponse("Invalid Input for emergencyPhoneNumber")))
             }
 
             val retrievedUser: Mono<User?> = userService.findByPhoneNumber(phoneNumber)
             retrievedUser.flatMap {
+                logger.info("Exist")
                 return@flatMap ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("User already exists"))
+                    .body(BodyInserters.fromValue(BadRequestResponse("User already exists")))
             }.switchIfEmpty {
                 val role: String = (map["role"]!! as FormFieldPart).value()
                 if (role != "RIDER" && role != "DRIVER") {
+                    logger.info("Role")
                     return@switchIfEmpty ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("The role field must be one of the following values: ['RIDER', 'DRIVER']"))
+                        .body(BodyInserters.fromValue(BadRequestResponse("The role field must be one of the following values: ['RIDER', 'DRIVER']")))
                 }
 
                 val user = User(
@@ -118,8 +127,9 @@ class UserHandler(private val userService: UserService, private val tokenProvide
 
                 if (role == "DRIVER") {
                     if (!constants.REQUIRED_DRIVER_FIELDS.all { map.containsKey(it) }) {
+                        logger.info("Driver Keys")
                         return@switchIfEmpty ServerResponse.badRequest()
-                            .body(BodyInserters.fromValue("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}"))
+                            .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}")))
                     }
 
                     val drivingLicensePicture: FilePart = map["drivingLicensePicture"]!! as FilePart
@@ -154,19 +164,22 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                     user.preference = preferences
                 }
 
-                val savedUserMono: Mono<User>
-                try {
-                    savedUserMono = userService.register(user)
-                } catch (e: IllegalArgumentException) {
-                    return@switchIfEmpty ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                        BodyInserters.fromValue("Document Verification Error: " + e.message)
-                    )
-                }
-
+//                val savedUserMono: Mono<User>
+//                try {
+//
+//                } catch (e: IllegalArgumentException) {
+//                    return@switchIfEmpty ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+//                        BodyInserters.fromValue("Document Verification Error: " + e.message)
+//                    )
+//                }
+                val savedUserMono = userService.register(user)
                 savedUserMono.flatMap { savedUser ->
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                         BodyInserters.fromValue(AuthResponse(savedUser, tokenProvider.generateToken(savedUser)))
                     )
+                }.onErrorResume { e ->
+                    ServerResponse.badRequest().body(
+                        BodyInserters.fromValue(BadRequestResponse("Document Verification Error: " + e.message)))
                 }
             }
         }
@@ -210,7 +223,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                     if (map.containsKey("role") && (map["role"]!! as FormFieldPart).value() == "DRIVER" && user?.role == "RIDER") {
                         if (!constants.REQUIRED_DRIVER_FIELDS.all { map.containsKey(it) }) {
                             return@third ServerResponse.badRequest()
-                                .body(BodyInserters.fromValue("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}"))
+                                .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}")))
                         }
 
                         val drivingLicensePicture: FilePart = map["drivingLicensePicture"]!! as FilePart
@@ -269,12 +282,12 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                             user.rating[rating - 1]++
                         } catch (e: NumberFormatException) {
                             return@third ServerResponse.badRequest()
-                                .body(BodyInserters.fromValue("Invalid value for rating."))
+                                .body(BodyInserters.fromValue(BadRequestResponse("Invalid value for rating.")))
                         }
 
                     } else {
                         return@third ServerResponse.badRequest()
-                            .body(BodyInserters.fromValue("Can not rate logged in user."))
+                            .body(BodyInserters.fromValue(BadRequestResponse("Can not rate logged in user.")))
                     }
 
                     userService.update(user).flatMap { savedUser ->
@@ -285,7 +298,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                 }
             }.switchIfEmpty {
                 ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue("User not found."))
+                    .body(BodyInserters.fromValue(BadRequestResponse("User not found.")))
             }
         }
     }
@@ -311,7 +324,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
             "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME"),
             "api_key", System.getenv("CLOUDINARY_API_KEY"),
             "api_secret", System.getenv("CLOUDINARY_API_SECRET"),
-            "secure", true));
+            "secure", true))
 
 
         val params: Map<*, *> = ObjectUtils.asMap(

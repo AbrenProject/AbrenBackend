@@ -10,7 +10,11 @@ import reactor.core.publisher.Mono
 @Service
 class RouteService(private val routeRepository: RouteRepository) {
     fun findAll(): Flux<Route>{
-        return routeRepository.findAll();
+        return routeRepository.findAll()
+    }
+
+    fun findAllByDriverId(driverId: String): Flux<Route?> {
+        return routeRepository.findAllByDriverId(driverId)
     }
 
     fun findOne(id:String): Mono<Route?>{

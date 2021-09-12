@@ -4,6 +4,7 @@ import com.example.abren.models.Otp
 import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.models.User
+import com.example.abren.responses.BadRequestResponse
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
@@ -88,10 +89,10 @@ class RideHandler(
                         }
                     }
                     ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("There are no nearby rides that match your destination."))
+                        .body(BodyInserters.fromValue(BadRequestResponse("There are no nearby rides that match your destination.")))
                 }.switchIfEmpty(
                     ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("Request not found."))
+                        .body(BodyInserters.fromValue(BadRequestResponse("Request not found.")))
                 )
             }
         }

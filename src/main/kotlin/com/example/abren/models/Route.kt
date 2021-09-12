@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 data class Route(
-        var id: String?,
+        var _id: String?,
         var driverId: String?,
         var startingLocation: Location,
         var waypointLocations: ArrayList<Location>,
@@ -12,6 +12,5 @@ data class Route(
         var lastTaken: Date?,
         var createdAt: LocalDateTime?,
         var updatedAt: LocalDateTime?,
-        var deletedAt: LocalDateTime?,
-
+        var deletedAt: LocalDateTime?
         )
