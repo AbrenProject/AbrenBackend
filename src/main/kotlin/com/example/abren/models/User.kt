@@ -9,12 +9,12 @@ data class User(
     var gender: String? = null,
     var ageGroup: String? = null,
     var password: String,
-    var role: String?, //TODO: Create enum
-    var isVerified: Boolean = false,
+    var role: String, //TODO: Create enum
+    var isVerified: Boolean = false, //TODO: Set value in service
     var emergencyPhoneNumber: String,
-    var profilePictureUrl: String? = null,
-    var idCardUrl: String? = null,
-    var idCardBackUrl: String? = null,
+    var profilePictureUrl: String,
+    var idCardUrl: String,
+    var idCardBackUrl: String,
     var vehicleInformation: VehicleInformation? = null,
     var preference: List<Preference>? = null,
     var rating: MutableList<Int> = MutableList(5) { 0 },

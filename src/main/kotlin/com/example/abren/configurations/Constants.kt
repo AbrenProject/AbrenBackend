@@ -6,19 +6,22 @@ class Constants {
     val TOKEN_PREFIX = "Bearer "
     val HEADER_STRING = "Authorization"
     val AUTHORITIES_KEY = "abre13nauthorities"
+    val REQUIRED_LOGIN_FIELDS = arrayListOf(
+        "phoneNumber"
+    )
     val REQUIRED_FIELDS = arrayListOf(
-        "profilePicture",
-        "idCardPicture",
-        "idCardBackPicture",
+        "profilePictureUrl",
+        "idCardUrl",
+        "idCardBackUrl",
         "phoneNumber",
         "emergencyPhoneNumber",
         "role"
     ) //TODO: More Validation for each
     val REQUIRED_DRIVER_FIELDS = arrayListOf(
-        "drivingLicensePicture",
-        "ownershipDocPicture",
-        "insuranceDocPicture",
-        "vehiclePicture",
+        "licenseUrl",
+        "ownershipDocUrl",
+        "insuranceDocUrl",
+        "vehiclePictureUrl",
         "licensePlateNumber",
         "year",
         "make",
