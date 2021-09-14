@@ -67,6 +67,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
     fun signup(r: ServerRequest): Mono<ServerResponse> {
         val userMono = r.bodyToMono(User::class.java)
         return userMono.flatMap first@{ user ->
+            logger.info("User: $user")
             if (user.phoneNumber.length != 12) {
                 logger.info("PhoneNum")
                 return@first ServerResponse.badRequest()
@@ -81,6 +82,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
 
             val retrievedUser = userService.findByPhoneNumber(user.phoneNumber)
             retrievedUser.flatMap {
+                logger.info("Exists")
                 return@flatMap ServerResponse.badRequest()
                     .body(BodyInserters.fromValue(BadRequestResponse("User already exists")))
             }.switchIfEmpty {
@@ -91,6 +93,7 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                 }
 
                 if (user.role == "DRIVER" && user.vehicleInformation == null) {
+                    logger.info("vehicleInfo")
                     return@switchIfEmpty ServerResponse.badRequest()
                         .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}")))
                 }
