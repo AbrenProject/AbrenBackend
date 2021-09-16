@@ -1,9 +1,6 @@
 package com.example.abren.handlers
 
-import com.example.abren.models.Otp
-import com.example.abren.models.Request
-import com.example.abren.models.Ride
-import com.example.abren.models.User
+import com.example.abren.models.*
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
@@ -22,7 +19,9 @@ import reactor.core.publisher.Mono
 import java.io.*
 import java.lang.Boolean.FALSE
 import java.time.LocalDateTime
+import java.util.*
 import java.util.stream.Collectors
+import kotlin.collections.HashMap
 
 
 @Component
@@ -36,6 +35,38 @@ class RideHandler(
 
     var startNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
     var destinationNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
+
+    //TODO: UPDATE THE STATUS OF REQUEST TO ACCEPTED
+    fun acceptRequest(r: ServerRequest): Mono<ServerResponse> {
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+        return rideMono.flatMap { ride->
+                r.queryParam("requestId").map{  requestId->
+                ride?.acceptedRequests?.add(requestId)
+                ride?.requests?.remove(requestId)
+              }
+            val updatedRide = rideService.update(ride!!)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(updatedRide, Ride::class.java))
+        }.switchIfEmpty(
+                ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue("Ride not found."))
+        )
+        }
+
+    fun getRideRequests(r:ServerRequest): Mono<ServerResponse>{
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+        return rideMono.flatMap { ride ->
+            val rideRequestsId = ride?.requests!!
+            val rideRequests = requestService.findAllByIds(rideRequestsId)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                    .body(BodyInserters.fromProducer(rideRequests, Request::class.java))
+        }.switchIfEmpty(
+                ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue("Ride not found."))
+        )
+
+
+    }
 
     fun createRide(r:ServerRequest): Mono<ServerResponse>{
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->

@@ -13,8 +13,11 @@ import com.example.abren.services.UserService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
+import org.springframework.http.codec.multipart.FormFieldPart
+import org.springframework.http.codec.multipart.Part
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.BodyExtractors
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.EntityResponse.fromObject
 import org.springframework.web.reactive.function.server.ServerRequest
@@ -32,6 +35,9 @@ class RequestHandler(
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
     val constants = Constants()
+
+
+
     fun createRequest(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> =
@@ -53,21 +59,6 @@ class RequestHandler(
                 )
             }
         }
-    }
-
-    fun getRideRequests(r:ServerRequest): Mono<ServerResponse>{
-        val rideMono = rideService.findOne(r.pathVariable("id"))
-       return rideMono.flatMap { ride ->
-            val rideRequestsId = ride?.requests!!
-            val rideRequests = requestService.findAllByIds(rideRequestsId)
-            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromProducer(rideRequests, Request::class.java))
-        }.switchIfEmpty(
-               ServerResponse.badRequest()
-                       .body(BodyInserters.fromValue("Ride not found."))
-       )
-
-
     }
 
     fun getAllRequests(r:ServerRequest): Mono<ServerResponse>{
