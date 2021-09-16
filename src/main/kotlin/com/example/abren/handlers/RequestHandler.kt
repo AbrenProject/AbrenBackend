@@ -22,6 +22,7 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 import reactor.kotlin.core.publisher.toFlux
 
 @Component
@@ -48,10 +49,12 @@ class RequestHandler(
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                         BodyInserters.fromProducer(saved, Request::class.java)
                     )
-                }.switchIfEmpty(
+                }.switchIfEmpty {
+                    logger.info("Is Empty")
                     ServerResponse.badRequest()
                         .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}")))
-                ).onErrorResume {
+                }.onErrorResume {
+                    logger.info("${it.message}")
                     ServerResponse.badRequest()
                         .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_REQUEST_FIELDS}")))
                 }

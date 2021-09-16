@@ -11,7 +11,7 @@ data class Ride(
         var status: String?,
         var requests: MutableList<String> = ArrayList(),
         var acceptedRequests: MutableList<String> = ArrayList(),
-        var otp:Otp?,
+        var otp:Otp?, //TODO: Make sure this is not sent to riders
         var createdAt: LocalDateTime? = LocalDateTime.now(),
         var updatedAt: LocalDateTime? = LocalDateTime.now(),
         var deletedAt: LocalDateTime? =null,
