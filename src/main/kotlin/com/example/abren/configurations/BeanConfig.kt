@@ -53,6 +53,7 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
                 .andRoute(GET("/api/rides/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRideRequests)
                 .andRoute(PUT("/api/rides/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::acceptRequest)
                 .andRoute(GET("/api/rides/acceptedrequests/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getAcceptedRequests)
+                .andRoute(GET("/api/rides/allrequests/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getAllRequests)
                 //.andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
 
     }

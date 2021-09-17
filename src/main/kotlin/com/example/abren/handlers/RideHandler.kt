@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.io.*
@@ -61,6 +62,20 @@ class RideHandler(
                         .body(BodyInserters.fromValue("Ride not found."))
         )
         }
+
+    fun getAllRequests(r:ServerRequest): Mono<ServerResponse>{
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+
+        return rideMono.flatMap { ride->
+            val requestsIds = ride?.requests!!
+            val acceptedRequestsIds = ride?.acceptedRequests
+            val requestsFlux = requestService.findAllByIds(requestsIds)
+            val acceptedRequestsFlux = requestService.findAllByIds(acceptedRequestsIds)
+            val allRequestsFlux = Flux.concat(requestsFlux,acceptedRequestsFlux)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(allRequestsFlux,Request::class.java))
+        }
+    }
 
     fun getAcceptedRequests(r:ServerRequest): Mono<ServerResponse>{
         val rideMono = rideService.findOne(r.pathVariable("id"))
