@@ -34,7 +34,7 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
     fun userRoute(): RouterFunction<ServerResponse> {
         return route(GET("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::getProfile)
 //            .andRoute(PUT("/api/users/profile").and(accept(MediaType.APPLICATION_JSON)), userHandler::editUser)
-            .andRoute(POST("/api/users/rate/{id}").and(accept(MediaType.APPLICATION_JSON)), userHandler::rate)
+            .andRoute(POST("/api/users/rate/{id}/{rating}").and(accept(MediaType.APPLICATION_JSON)), userHandler::rate)
     }
 
     @Bean
@@ -46,7 +46,7 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
 
     @Bean
     fun ridesRoute(): RouterFunction<ServerResponse> {
-        return route(GET("/api/rides/nearby/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getRides)
+        return route(POST("/api/rides/nearby/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getRides)
                 .andRoute(POST("/api/rides").and(accept(MediaType.APPLICATION_JSON)), rideHandler::createRide)
                 .andRoute(GET("/api/rides/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRideRequests)
     }

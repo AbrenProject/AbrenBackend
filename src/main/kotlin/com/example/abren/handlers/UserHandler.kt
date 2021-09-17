@@ -211,31 +211,27 @@ class UserHandler(private val userService: UserService, private val tokenProvide
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> = userService.findOne(r.pathVariable("id"))
             userMono.flatMap second@{ user ->
-                r.body(BodyExtractors.toMultipartData()).flatMap third@{ parts ->
-                    val map: Map<String, Part> = parts.toSingleValueMap()
-
-                    if (user != null && map.containsKey("rating") && user.phoneNumber != securityContext.authentication.principal as String) {
-                        try {
-                            val rating = parseInt((map["rating"]!! as FormFieldPart).value())
-                            if (rating < 1 || rating > 5) {
-                                throw NumberFormatException()
-                            }
-                            user.rating[rating - 1]++
-                        } catch (e: NumberFormatException) {
-                            return@third ServerResponse.badRequest()
-                                .body(BodyInserters.fromValue(BadRequestResponse("Invalid value for rating.")))
+                if (user != null && user.phoneNumber != securityContext.authentication.principal as String) {
+                    try {
+                        val rating = r.pathVariable("rating").toInt()
+                        if (rating < 1 || rating > 5) {
+                            throw NumberFormatException()
                         }
-
-                    } else {
-                        return@third ServerResponse.badRequest()
-                            .body(BodyInserters.fromValue(BadRequestResponse("Can not rate logged in user.")))
+                        user.rating[rating - 1]++
+                    } catch (e: NumberFormatException) {
+                        return@second ServerResponse.badRequest()
+                            .body(BodyInserters.fromValue(BadRequestResponse("Invalid value for rating.")))
                     }
 
-                    userService.update(user).flatMap { savedUser ->
-                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                            BodyInserters.fromValue(savedUser)
-                        )
-                    }
+                } else {
+                    return@second ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("Can not rate logged in user.")))
+                }
+
+                userService.update(user).flatMap { savedUser ->
+                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                        BodyInserters.fromValue(savedUser)
+                    )
                 }
             }.switchIfEmpty {
                 ServerResponse.badRequest()

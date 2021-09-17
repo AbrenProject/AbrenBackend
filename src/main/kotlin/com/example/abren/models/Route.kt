@@ -13,4 +13,4 @@ data class Route(
         var createdAt: LocalDateTime?,
         var updatedAt: LocalDateTime?,
         var deletedAt: LocalDateTime?
-        )
+)
