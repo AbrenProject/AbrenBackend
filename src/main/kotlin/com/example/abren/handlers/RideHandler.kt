@@ -22,6 +22,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import java.io.*
 import java.lang.Boolean.FALSE
 import java.nio.file.Paths
@@ -61,6 +62,20 @@ class RideHandler(
         )
         }
 
+    fun getAcceptedRequests(r:ServerRequest): Mono<ServerResponse>{
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+        return rideMono.flatMap { ride ->
+            val acceptedRequestsId = ride?.acceptedRequests!!
+            val acceptedRequestsFlux = requestService.findAllByIds(acceptedRequestsId)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(acceptedRequestsFlux, Request::class.java)
+            )
+        }.switchIfEmpty(
+                ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
+        )
+
+    }
     fun createRide(r:ServerRequest): Mono<ServerResponse>{
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> =
@@ -80,7 +95,10 @@ class RideHandler(
                         ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                             BodyInserters.fromProducer(savedRide, Request::class.java)
                         )
-                    }
+                    }.switchIfEmpty(
+                            ServerResponse.badRequest()
+                                    .body(BodyInserters.fromValue(BadRequestResponse("Route not found.")))
+                    )
                 }
             }
         }
