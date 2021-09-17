@@ -21,11 +21,14 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import java.io.*
 import java.lang.Boolean.FALSE
 import java.nio.file.Paths
 import java.time.LocalDateTime
+import java.util.*
 import java.util.stream.Collectors
+import kotlin.collections.HashMap
 
 
 @Component
@@ -40,6 +43,38 @@ class RideHandler(
 
     var startNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
     var destinationNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
+
+    //TODO: UPDATE THE STATUS OF REQUEST TO ACCEPTED
+    fun acceptRequest(r: ServerRequest): Mono<ServerResponse> {
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+        return rideMono.flatMap { ride->
+                r.queryParam("requestId").map{  requestId->
+                ride?.acceptedRequests?.add(requestId)
+                ride?.requests?.remove(requestId)
+              }
+            val updatedRide = rideService.update(ride!!)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(updatedRide, Ride::class.java))
+        }.switchIfEmpty(
+                ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue("Ride not found."))
+        )
+        }
+
+    fun getAcceptedRequests(r:ServerRequest): Mono<ServerResponse>{
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+        return rideMono.flatMap { ride ->
+            val acceptedRequestsId = ride?.acceptedRequests!!
+            val acceptedRequestsFlux = requestService.findAllByIds(acceptedRequestsId)
+            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    BodyInserters.fromProducer(acceptedRequestsFlux, Request::class.java)
+            )
+        }.switchIfEmpty(
+                ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
+        )
+
+    }
 
     fun createRide(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
@@ -60,7 +95,10 @@ class RideHandler(
                         ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                             BodyInserters.fromProducer(savedRide, Request::class.java)
                         )
-                    }
+                    }.switchIfEmpty(
+                            ServerResponse.badRequest()
+                                    .body(BodyInserters.fromValue(BadRequestResponse("Route not found.")))
+                    )
                 }
             }
         }
