@@ -1,12 +1,12 @@
 package com.example.abren.handlers
 
 import com.example.abren.configurations.Constants
+import com.example.abren.models.Location
 import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.models.User
-import com.example.abren.responses.AuthResponse
 import com.example.abren.responses.BadRequestResponse
-import com.example.abren.responses.RidesResponse
+import com.example.abren.responses.RequestsResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
 import com.example.abren.services.RideService
@@ -14,19 +14,13 @@ import com.example.abren.services.UserService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
-import org.springframework.http.codec.multipart.FormFieldPart
-import org.springframework.http.codec.multipart.Part
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyExtractors
 import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.EntityResponse.fromObject
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
-import reactor.kotlin.core.publisher.toFlux
 
 @Component
 class RequestHandler(
@@ -69,19 +63,43 @@ class RequestHandler(
     }
 
 
-    fun getRideRequests(r:ServerRequest): Mono<ServerResponse>{
-        val rideMono = rideService.findOne(r.pathVariable("id"))
-       return rideMono.flatMap { ride ->
-            val rideRequestsId = ride?.requests!!
-            val rideRequests = requestService.findAllByIds(rideRequestsId)
-            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromProducer(rideRequests, Request::class.java))
-        }.switchIfEmpty(
-               ServerResponse.badRequest()
-                       .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
-       )
+    fun getRequests(r: ServerRequest): Mono<ServerResponse> {
+        return ReactiveSecurityContextHolder.getContext().flatMap first@{ securityContext ->
+            val userMono: Mono<User?> =
+                userService.findByPhoneNumber(securityContext.authentication.principal as String)
+            val locationMono = r.bodyToMono(Location::class.java)
 
-
+            userMono.flatMap second@{ user ->
+                val rideMono = rideService.findOne(r.pathVariable("id"))
+                rideMono.flatMap third@{ ride ->
+                    if (user?._id != ride?.driverId) {
+                        return@third ServerResponse.status(401)
+                            .body(BodyInserters.fromValue(BadRequestResponse("Ride doesn't belong to logged in user.")))
+                    } else {
+                        return@third locationMono.flatMap fourth@{ location ->
+                            ride?.driverLocation = location
+                            rideService.update(ride!!).flatMap fifth@{ ride ->
+                                val requestedFlux = requestService.findAllById(ride.requests)
+                                val acceptedFlux = requestService.findAllById(ride.acceptedRequests)
+                                acceptedFlux.collectList()
+                                    .flatMap sixth@{ accepted -> //TODO: Handle Duplicates
+                                        requestedFlux.collectList().flatMap { requested ->
+                                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                .body(BodyInserters.fromValue(RequestsResponse(requested, accepted)))
+                                        }
+                                    }
+                            }
+                        }.switchIfEmpty(
+                            ServerResponse.badRequest()
+                                .body(BodyInserters.fromValue(BadRequestResponse("Invalid Input for Location")))
+                        )
+                    }
+                }.switchIfEmpty(
+                    ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
+                )
+            }
+        }
     }
 
     fun sendRequest(r: ServerRequest): Mono<ServerResponse> {
@@ -124,5 +142,31 @@ class RequestHandler(
                 )
             }
         }
+    }
+
+    fun startRide(r: ServerRequest): Mono<ServerResponse> {
+        val input = r.queryParam("otp")
+        val requestMono = requestService.findOne(r.pathVariable("id"))
+
+        return input.map first@ { inputVal ->
+            requestMono.flatMap second@ { request ->
+                val rideMono = rideService.findOne(request!!.acceptedRide)
+                rideMono.flatMap third@ { ride ->
+                    if(inputVal != ride?.otp.toString()){
+                        return@third ServerResponse.badRequest()
+                            .body(BodyInserters.fromValue(BadRequestResponse("The code could not be validated.")))
+                    }else{
+                        request.status = "STARTED"
+                        return@third requestService.update(request).flatMap { savedRequest ->
+                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                .body(BodyInserters.fromProducer(savedRequest, Ride::class.java))
+                        }
+                    }
+                }
+            }
+        }.orElse(
+            ServerResponse.badRequest()
+                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [otp].")))
+        )
     }
 }

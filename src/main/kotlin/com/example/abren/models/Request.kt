@@ -10,6 +10,7 @@ data class Request(
     var destination: Location,
     var status: String?,
     var requestedRides: MutableList<String> = ArrayList(),
+    var acceptedRide: String,
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     var deletedAt: LocalDateTime? = null,

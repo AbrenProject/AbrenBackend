@@ -13,7 +13,7 @@ class RequestService(private val requestRepository: RequestRepository) {
         return requestRepository.findAllById(ids)
     }
 
-    fun findAllByIds(ids: MutableList<String>): Flux<Request?> {
+    fun findAllById(ids: MutableList<String>): Flux<Request?> {
         return requestRepository.findAllById(ids)
     }
 

@@ -11,11 +11,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.server.RequestPredicates.*
 import org.springframework.web.reactive.function.server.RouterFunction
-import org.springframework.web.reactive.function.server.RouterFunctions
 import org.springframework.web.reactive.function.server.RouterFunctions.route
 import org.springframework.web.reactive.function.server.ServerResponse
 
@@ -41,18 +39,15 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
     fun requestsRoute(): RouterFunction<ServerResponse> {
         return route(POST("/api/requests").and(accept(MediaType.APPLICATION_JSON)), requestHandler::createRequest)
             .andRoute(PUT("/api/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::sendRequest)
-
+            .andRoute(POST("/api/requests/current/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRequests)
+            .andRoute(POST("/api/requests/start/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::startRide)
     }
 
     @Bean
     fun ridesRoute(): RouterFunction<ServerResponse> {
         return route(POST("/api/rides/nearby/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getRides)
                 .andRoute(POST("/api/rides").and(accept(MediaType.APPLICATION_JSON)), rideHandler::createRide)
-                .andRoute(GET("/api/rides/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRideRequests)
                 .andRoute(PUT("/api/rides/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::acceptRequest)
-                .andRoute(GET("/api/rides/acceptedrequests/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getAcceptedRequests)
-                .andRoute(GET("/api/rides/allrequests/{id}").and(accept(MediaType.APPLICATION_JSON)), rideHandler::getAllRequests)
-                //.andRoute(POST("/api/requests").and(accept(MediaType.MULTIPART_FORM_DATA)), userHandler::signup)
 
     }
 

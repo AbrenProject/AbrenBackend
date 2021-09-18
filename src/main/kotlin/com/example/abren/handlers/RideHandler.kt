@@ -3,6 +3,7 @@ package com.example.abren.handlers
 import com.example.abren.models.*
 import com.example.abren.responses.BadRequestResponse
 import com.example.abren.responses.NearbyRidesResponse
+import com.example.abren.responses.RequestsResponse
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
@@ -48,47 +49,34 @@ class RideHandler(
     //TODO: UPDATE THE STATUS OF REQUEST TO ACCEPTED
     fun acceptRequest(r: ServerRequest): Mono<ServerResponse> {
         val rideMono = rideService.findOne(r.pathVariable("id"))
-        return rideMono.flatMap { ride->
-                r.queryParam("requestId").map{  requestId->
-                ride?.acceptedRequests?.add(requestId)
-                ride?.requests?.remove(requestId)
-              }
-            val updatedRide = rideService.update(ride!!)
-            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                    BodyInserters.fromProducer(updatedRide, Ride::class.java))
-        }.switchIfEmpty(
-                ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue("Ride not found."))
-        )
-        }
-
-    fun getAllRequests(r:ServerRequest): Mono<ServerResponse>{
-        val rideMono = rideService.findOne(r.pathVariable("id"))
-
-        return rideMono.flatMap { ride->
-            val requestsIds = ride?.requests!!
-            val acceptedRequestsIds = ride?.acceptedRequests
-            val requestsFlux = requestService.findAllByIds(requestsIds)
-            val acceptedRequestsFlux = requestService.findAllByIds(acceptedRequestsIds)
-            val allRequestsFlux = Flux.concat(requestsFlux,acceptedRequestsFlux)
-            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                    BodyInserters.fromProducer(allRequestsFlux,Request::class.java))
-        }
-    }
-
-    fun getAcceptedRequests(r:ServerRequest): Mono<ServerResponse>{
-        val rideMono = rideService.findOne(r.pathVariable("id"))
         return rideMono.flatMap { ride ->
-            val acceptedRequestsId = ride?.acceptedRequests!!
-            val acceptedRequestsFlux = requestService.findAllByIds(acceptedRequestsId)
-            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                    BodyInserters.fromProducer(acceptedRequestsFlux, Request::class.java)
+            r.queryParam("requestId").map { requestId ->
+                val requestMono = requestService.findOne(requestId)
+                requestMono.flatMap { request ->
+                    request?.acceptedRide = r.pathVariable("id")
+                    request?.status = "ACCEPTED"
+                    val savedRequestMono = requestService.update(request!!)
+                    savedRequestMono.flatMap {
+                        ride?.acceptedRequests?.add(requestId)
+                        ride?.requests?.remove(requestId)
+                        val updatedRide = rideService.update(ride!!)
+                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                            BodyInserters.fromProducer(updatedRide, Ride::class.java)
+                        )
+                    }
+                }.switchIfEmpty(
+                    ServerResponse.badRequest()
+                        .body(BodyInserters.fromValue(BadRequestResponse("Request not found.")))
+                )
+
+            }.orElse(
+                ServerResponse.badRequest()
+                    .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [requestId].")))
             )
         }.switchIfEmpty(
-                ServerResponse.badRequest()
-                        .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
+            ServerResponse.badRequest()
+                .body(BodyInserters.fromValue(BadRequestResponse("Ride not found.")))
         )
-
     }
 
     fun createRide(r: ServerRequest): Mono<ServerResponse> {
@@ -111,8 +99,8 @@ class RideHandler(
                             BodyInserters.fromProducer(savedRide, Request::class.java)
                         )
                     }.switchIfEmpty(
-                            ServerResponse.badRequest()
-                                    .body(BodyInserters.fromValue(BadRequestResponse("Route not found.")))
+                        ServerResponse.badRequest()
+                            .body(BodyInserters.fromValue(BadRequestResponse("Route not found.")))
                     )
                 }
             }
@@ -132,7 +120,7 @@ class RideHandler(
                         return@third ServerResponse.status(401)
                             .body(BodyInserters.fromValue(BadRequestResponse("Request doesn't belong to logged in user.")))
                     } else {
-                        return@third locationMono.flatMap fourth@ { location ->
+                        return@third locationMono.flatMap fourth@{ location ->
                             request?.riderLocation = location
                             requestService.update(request!!).flatMap fifth@{ request ->
                                 val requestedFlux = rideService.findAllById(request?.requestedRides!!)
@@ -148,7 +136,7 @@ class RideHandler(
                                                     .body(BodyInserters.fromValue(RidesResponse(requested, nearby)))
                                             }
                                         }
-                                }else{
+                                } else {
                                     ServerResponse.badRequest()
                                         .body(BodyInserters.fromValue(BadRequestResponse("There are no nearby rides that match your destination.")))
                                 }
@@ -164,6 +152,41 @@ class RideHandler(
                 )
             }
         }
+    }
+
+    fun finishRide(r: ServerRequest): Mono<ServerResponse> {
+        val input = r.queryParam("km")
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+
+        return input.map first@ { inputVal ->
+            rideMono.flatMap <ServerResponse> second@ { ride ->
+                val userMono = userService.findOne(ride?.driverId.toString())
+                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
+                requestsFlux.collectList().flatMap { requests -> //TODO: UPDATE COST FOR REQUESTS
+                    userMono.flatMap { user ->
+                        val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml
+                        val cost = fuel * 21.5
+                        user.creditsEarned = user.creditsEarned.plus(cost)
+                        userService.update(user).flatMap { savedUser ->
+                            ride.cost = cost
+                            rideService.update(ride).flatMap { savedRide ->
+                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                    .body(BodyInserters.fromValue(savedRide))
+                            }
+                        }
+                    }
+                }
+            }.switchIfEmpty(
+                ServerResponse.badRequest()
+                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+            ).onErrorResume {
+                ServerResponse.badRequest()
+                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+            }
+        }.orElse(
+            ServerResponse.badRequest()
+                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [km].")))
+        )
     }
 
     @Scheduled(fixedDelay = 20000)
