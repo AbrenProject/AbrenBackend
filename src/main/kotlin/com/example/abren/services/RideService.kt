@@ -61,7 +61,7 @@ class RideService(private val rideRepository: RideRepository, private val reques
     }
 
     fun getNearby(rides: MutableList<Ride?>?, requests: MutableList<Request?>?): Mono<NearbyRidesResponse> {
-        val webClient = webClientBuilder.baseUrl("https://abren-project-scripts.herokuapp.com/").build()
+        val webClient = webClientBuilder.baseUrl("http://localhost:5000/").build()
 
         val nearbyRidesRequest = NearbyRidesRequest(rides, requests)
         return webClient.post()

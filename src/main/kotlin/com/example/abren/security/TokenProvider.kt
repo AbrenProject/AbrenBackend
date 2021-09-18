@@ -43,7 +43,7 @@ class TokenProvider : Serializable {
                 .claim(constants.AUTHORITIES_KEY, authorities)
                 .signWith(SignatureAlgorithm.HS256, constants.SIGNING_KEY)
                 .setIssuedAt(Date(System.currentTimeMillis()))
-                .setExpiration(Date(System.currentTimeMillis() + constants.ACCESS_TOKEN_VALIDITY_SECONDS * 1000)) //TODO: Don't let it expire?
+                .setExpiration(Date(System.currentTimeMillis() + constants.ACCESS_TOKEN_VALIDITY_SECONDS * 1000))
                 .compact()
         } else {
             ""

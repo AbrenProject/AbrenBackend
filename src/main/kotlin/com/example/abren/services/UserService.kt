@@ -53,7 +53,7 @@ class UserService(private val userRepository: UserRepository, private val webCli
 
     @Throws(IllegalArgumentException::class)
     fun register(user: User): Mono<User> {
-        val idResultMono = verifyDocument("ID", user.idCardUrl!!, user.profilePictureUrl!!)
+        val idResultMono = verifyDocument("ID", user.idCardUrl, user.profilePictureUrl)
         return idResultMono.flatMap { idResult ->
             logger.info("ID: $idResult")
             if (!idResult.isLogoVerified) {
@@ -124,9 +124,11 @@ class UserService(private val userRepository: UserRepository, private val webCli
                         throw IllegalArgumentException("DRIVING_LICENSE: The text in the document could not be validated.")
                     }
 
+                    user.isVerified = true
                     userRepository.save(user)
                 }
             }
+            user.isVerified = true
             userRepository.save(user)
         }
     }

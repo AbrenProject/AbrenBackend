@@ -39,7 +39,10 @@ class SecurityConfig(
             .authorizeExchange()
             .pathMatchers(*patterns).permitAll()
             .pathMatchers(HttpMethod.OPTIONS).permitAll()
-//            .pathMatchers("/users/change_account").hasAuthority("RIDER")
+            .pathMatchers("/api/users/change_account").hasAuthority("RIDER")
+            .pathMatchers("/api/rides").hasAuthority("DRIVER")
+            .pathMatchers("/api/routes/*").hasAuthority("DRIVER")
+            .pathMatchers("/api/requests").hasAuthority("RIDER") //TODO: Once the route is fixed
             .anyExchange().authenticated()
             .and()
             .build()

@@ -10,7 +10,7 @@ data class User(
     var ageGroup: String? = null,
     var password: String,
     var role: String, //TODO: Create enum
-    var isVerified: Boolean = false, //TODO: Set value in service
+    var isVerified: Boolean = false,
     var emergencyPhoneNumber: String,
     var profilePictureUrl: String,
     var idCardUrl: String,
