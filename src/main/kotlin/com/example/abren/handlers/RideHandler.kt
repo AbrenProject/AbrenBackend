@@ -154,40 +154,40 @@ class RideHandler(
         }
     }
 
-    fun finishRide(r: ServerRequest): Mono<ServerResponse> {
-        val input = r.queryParam("km")
-        val rideMono = rideService.findOne(r.pathVariable("id"))
-
-        return input.map first@ { inputVal ->
-            rideMono.flatMap <ServerResponse> second@ { ride ->
-                val userMono = userService.findOne(ride?.driverId.toString())
-                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
-                requestsFlux.collectList().flatMap { requests -> //TODO: UPDATE COST FOR REQUESTS
-                    userMono.flatMap { user ->
-                        val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml
-                        val cost = fuel * 21.5
-                        user.creditsEarned = user.creditsEarned.plus(cost)
-                        userService.update(user).flatMap { savedUser ->
-                            ride.cost = cost
-                            rideService.update(ride).flatMap { savedRide ->
-                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                    .body(BodyInserters.fromValue(savedRide))
-                            }
-                        }
-                    }
-                }
-            }.switchIfEmpty(
-                ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
-            ).onErrorResume {
-                ServerResponse.badRequest()
-                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
-            }
-        }.orElse(
-            ServerResponse.badRequest()
-                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [km].")))
-        )
-    }
+//    fun finishRide(r: ServerRequest): Mono<ServerResponse> {
+//        val input = r.queryParam("km")
+//        val rideMono = rideService.findOne(r.pathVariable("id"))
+//
+//        return input.map first@ { inputVal ->
+//            rideMono.flatMap <ServerResponse> second@ { ride ->
+//                val userMono = userService.findOne(ride?.driverId.toString())
+//                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
+//                requestsFlux.collectList().flatMap { requests -> //TODO: UPDATE COST FOR REQUESTS
+//                    userMono.flatMap { user ->
+//                        val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml
+//                        val cost = fuel * 21.5
+//                        user.creditsEarned = user.creditsEarned.plus(cost)
+//                        userService.update(user).flatMap { savedUser ->
+//                            ride.cost = cost
+//                            rideService.update(ride).flatMap { savedRide ->
+//                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+//                                    .body(BodyInserters.fromValue(savedRide))
+//                            }
+//                        }
+//                    }
+//                }
+//            }.switchIfEmpty(
+//                ServerResponse.badRequest()
+//                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+//            ).onErrorResume {
+//                ServerResponse.badRequest()
+//                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+//            }
+//        }.orElse(
+//            ServerResponse.badRequest()
+//                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [km].")))
+//        )
+//    }
 
     @Scheduled(fixedDelay = 20000)
     fun prepareRides() { //TODO: Run in thread?

@@ -40,7 +40,7 @@ class BeanConfig(private val userService: UserService, private val userHandler: 
         return route(POST("/api/requests").and(accept(MediaType.APPLICATION_JSON)), requestHandler::createRequest)
             .andRoute(PUT("/api/requests/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::sendRequest)
             .andRoute(POST("/api/requests/current/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::getRequests)
-            .andRoute(POST("/api/requests/start/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::startRide)
+//            .andRoute(POST("/api/requests/start/{id}").and(accept(MediaType.APPLICATION_JSON)), requestHandler::startRide)
     }
 
     @Bean
