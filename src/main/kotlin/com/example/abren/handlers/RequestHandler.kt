@@ -84,13 +84,6 @@ class RequestHandler(
 
     }
 
-    fun getAllRequests(r:ServerRequest): Mono<ServerResponse>{
-        val requestsFlux = requestService.findAll()
-         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromProducer(requestsFlux, Request::class.java))
-
-    }
-
     fun sendRequest(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> =

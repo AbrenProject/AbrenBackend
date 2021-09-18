@@ -8,9 +8,6 @@ import reactor.core.publisher.Mono
 
 @Service
 class RequestService(private val requestRepository: RequestRepository) {
-    fun findAll(): Flux<Request?> {
-        return requestRepository.findAll()
-    }
 
     fun findAllById(ids: Set<String>): Flux<Request?> {
         return requestRepository.findAllById(ids)
