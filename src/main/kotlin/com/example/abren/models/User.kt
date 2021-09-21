@@ -18,7 +18,7 @@ data class User(
     var vehicleInformation: VehicleInformation? = null,
     var preference: List<Preference>? = null,
     var rating: MutableList<Int> = MutableList(5) { 0 },
-    var creditsBought: Double = 0.0,
+    var creditsBought: Double = 10000.0,
     var creditsEarned: Double = 0.0,
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),

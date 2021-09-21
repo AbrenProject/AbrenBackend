@@ -51,6 +51,10 @@ class UserService(private val userRepository: UserRepository, private val webCli
         return userRepository.count()
     }
 
+    fun deleteAll(): Mono<Void> {
+        return userRepository.deleteAll()
+    }
+
     @Throws(IllegalArgumentException::class)
     fun register(user: User): Mono<User> {
         val idResultMono = verifyDocument("ID", user.idCardUrl, user.profilePictureUrl)
