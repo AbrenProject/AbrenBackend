@@ -144,29 +144,29 @@ class RequestHandler(
         }
     }
 
-//    fun startRide(r: ServerRequest): Mono<ServerResponse> {
-//        val input = r.queryParam("otp")
-//        val requestMono = requestService.findOne(r.pathVariable("id"))
-//
-//        return input.map first@ { inputVal ->
-//            requestMono.flatMap second@ { request ->
-//                val rideMono = rideService.findOne(request!!.acceptedRide)
-//                rideMono.flatMap third@ { ride ->
-//                    if(inputVal != ride?.otp.toString()){
-//                        return@third ServerResponse.badRequest()
-//                            .body(BodyInserters.fromValue(BadRequestResponse("The code could not be validated.")))
-//                    }else{
-//                        request.status = "STARTED"
-//                        return@third requestService.update(request).flatMap { savedRequest ->
-//                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-//                                .body(BodyInserters.fromProducer(savedRequest, Ride::class.java))
-//                        }
-//                    }
-//                }
-//            }
-//        }.orElse(
-//            ServerResponse.badRequest()
-//                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [otp].")))
-//        )
-//    }
+    fun startRide(r: ServerRequest): Mono<ServerResponse> {
+        val input = r.queryParam("otp")
+        val requestMono = requestService.findOne(r.pathVariable("id"))
+
+        return input.map first@ { inputVal ->
+            requestMono.flatMap second@ { request ->
+                val rideMono = rideService.findOne(request!!.acceptedRide.toString())
+                rideMono.flatMap third@ { ride ->
+                    if(inputVal != ride?.otp?.code){
+                        return@third ServerResponse.badRequest()
+                            .body(BodyInserters.fromValue(BadRequestResponse("The code could not be validated.")))
+                    }else{
+                        request.status = "STARTED"
+                        return@third requestService.update(request).flatMap { savedRequest ->
+                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                .body(BodyInserters.fromValue(savedRequest))
+                        }
+                    }
+                }
+            }
+        }.orElse(
+            ServerResponse.badRequest()
+                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [otp].")))
+        )
+    }
 }

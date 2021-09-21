@@ -132,13 +132,36 @@ class RideHandler(
                                     return@fifth rideService.findAllById(nearbyIds).collectList()
                                         .flatMap sixth@{ nearby -> //TODO: Handle Duplicates
                                             requestedFlux.collectList().flatMap { requested ->
-                                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                                    .body(BodyInserters.fromValue(RidesResponse(requested, nearby)))
+                                                if(request.acceptedRide != null){
+                                                    rideService.findOne(request.acceptedRide!!).flatMap { acceptedRide ->
+                                                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                            .body(BodyInserters.fromValue(RidesResponse(requested, nearby, acceptedRide)))
+                                                    }
+                                                }else {
+                                                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                        .body(BodyInserters.fromValue(RidesResponse(requested, nearby, null)))
+                                                }
+
                                             }
                                         }
                                 } else {
-                                    ServerResponse.badRequest()
-                                        .body(BodyInserters.fromValue(BadRequestResponse("There are no nearby rides that match your destination.")))
+                                    rideService.findOne(request.acceptedRide!!).flatMap { acceptedRide ->
+                                        if(acceptedRide?.status == "FINISHED" && request.status == "STARTED"){
+                                            request.status = "FINISHED"
+                                            userService.findOne(request.riderId!!).flatMap { user ->
+                                                user?.creditsBought = user!!.creditsBought.minus(acceptedRide.cost)
+                                                userService.update(user).flatMap { savedUser ->
+                                                    requestService.update(request).flatMap { savedRequest ->
+                                                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                            .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), acceptedRide)))
+                                                    }
+                                                }
+                                            }
+                                        }else{
+                                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), acceptedRide)))
+                                        }
+                                    }
                                 }
                             }
                         }.switchIfEmpty(
@@ -154,40 +177,41 @@ class RideHandler(
         }
     }
 
-//    fun finishRide(r: ServerRequest): Mono<ServerResponse> {
-//        val input = r.queryParam("km")
-//        val rideMono = rideService.findOne(r.pathVariable("id"))
-//
-//        return input.map first@ { inputVal ->
-//            rideMono.flatMap <ServerResponse> second@ { ride ->
-//                val userMono = userService.findOne(ride?.driverId.toString())
-//                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
-//                requestsFlux.collectList().flatMap { requests -> //TODO: UPDATE COST FOR REQUESTS
-//                    userMono.flatMap { user ->
-//                        val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml
-//                        val cost = fuel * 21.5
-//                        user.creditsEarned = user.creditsEarned.plus(cost)
-//                        userService.update(user).flatMap { savedUser ->
-//                            ride.cost = cost
-//                            rideService.update(ride).flatMap { savedRide ->
-//                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-//                                    .body(BodyInserters.fromValue(savedRide))
-//                            }
-//                        }
-//                    }
-//                }
-//            }.switchIfEmpty(
-//                ServerResponse.badRequest()
-//                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
-//            ).onErrorResume {
-//                ServerResponse.badRequest()
-//                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
-//            }
-//        }.orElse(
-//            ServerResponse.badRequest()
-//                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [km].")))
-//        )
-//    }
+    fun finishRide(r: ServerRequest): Mono<ServerResponse> {
+        val input = r.queryParam("km")
+        val rideMono = rideService.findOne(r.pathVariable("id"))
+
+        return input.map first@ { inputVal ->
+            rideMono.flatMap <ServerResponse> second@ { ride ->
+                val userMono = userService.findOne(ride?.driverId.toString())
+                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
+                requestsFlux.collectList().flatMap { requests ->
+                    userMono.flatMap { user ->
+                        val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml
+                        val cost = fuel * 21.5
+                        user.creditsEarned = user.creditsEarned.plus(cost)
+                        userService.update(user).flatMap { savedUser ->
+                            ride.cost = cost / ride.acceptedRequests.size
+                            ride.status = "FINISHED"
+                            rideService.update(ride).flatMap { savedRide ->
+                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                    .body(BodyInserters.fromValue(savedRide))
+                            }
+                        }
+                    }
+                }
+            }.switchIfEmpty(
+                ServerResponse.badRequest()
+                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+            ).onErrorResume {
+                ServerResponse.badRequest()
+                    .body(BodyInserters.fromValue(BadRequestResponse("Ride not Found.")))
+            }
+        }.orElse(
+            ServerResponse.badRequest()
+                .body(BodyInserters.fromValue(BadRequestResponse("The following request parameters are required: [km].")))
+        )
+    }
 
     @Scheduled(fixedDelay = 20000)
     fun prepareRides() { //TODO: Run in thread?
