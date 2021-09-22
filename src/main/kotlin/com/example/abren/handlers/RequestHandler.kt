@@ -45,6 +45,9 @@ class RequestHandler(
                 requestMono.flatMap { request ->
                     request.riderId = user?._id
                     request.status = "PENDING"
+                    request.riderGender = user?.gender
+                    request.riderAgeGroup = user?.ageGroup
+                    request.riderRating = user?.rating
                     val saved = requestService.create(request)
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
                         BodyInserters.fromProducer(saved, Request::class.java)

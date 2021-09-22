@@ -2,16 +2,12 @@ package com.example.abren.handlers
 
 import com.example.abren.models.*
 import com.example.abren.responses.BadRequestResponse
-import com.example.abren.responses.NearbyRidesResponse
-import com.example.abren.responses.RequestsResponse
 import com.example.abren.responses.RidesResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.services.RequestService
 import com.example.abren.services.RideService
 import com.example.abren.services.RouteService
 import com.example.abren.services.UserService
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.exc.InvalidDefinitionException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -21,15 +17,9 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toFlux
-import java.io.*
 import java.lang.Boolean.FALSE
-import java.nio.file.Paths
 import java.time.LocalDateTime
-import java.util.*
-import java.util.stream.Collectors
 import kotlin.collections.HashMap
 
 
@@ -91,6 +81,9 @@ class RideHandler(
                         ride.driverId = user?._id
                         ride.status = "ACTIVE"
                         ride.route = route
+                        ride.driverGender = user?.gender
+                        ride.driverAgeGroup = user?.ageGroup
+                        ride.driverRating = user?.rating
                         val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
                         val otp = Otp(otpCode, LocalDateTime.now(), FALSE)
                         ride.otp = otp

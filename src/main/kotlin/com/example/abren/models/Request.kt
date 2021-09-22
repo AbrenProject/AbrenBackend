@@ -6,6 +6,9 @@ import java.time.LocalDateTime
 data class Request(
     var _id: String?,
     var riderId: String?,
+    var riderGender: String?,
+    var riderAgeGroup: String?,
+    var riderRating: MutableList<Int>?,
     var riderLocation: Location,
     var destination: Location,
     var status: String?,
