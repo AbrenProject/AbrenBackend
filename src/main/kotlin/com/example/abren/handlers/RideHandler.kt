@@ -137,7 +137,7 @@ class RideHandler(
 
                                             }
                                         }
-                                } else {
+                                } else if(request.acceptedRide != null) {
                                     rideService.findOne(request.acceptedRide!!).flatMap { acceptedRide ->
                                         if(acceptedRide?.status == "FINISHED" && request.status == "STARTED"){
                                             request.status = "FINISHED"
@@ -155,6 +155,9 @@ class RideHandler(
                                                 .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), acceptedRide)))
                                         }
                                     }
+                                }else{
+                                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                        .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), null)))
                                 }
                             }
                         }.switchIfEmpty(
