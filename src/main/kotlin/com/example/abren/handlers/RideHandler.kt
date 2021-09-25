@@ -84,6 +84,10 @@ class RideHandler(
                         ride.driverGender = user?.gender
                         ride.driverAgeGroup = user?.ageGroup
                         ride.driverRating = user?.rating
+                        ride.vehicleMake = user?.vehicleInformation?.make
+                        ride.vehicleModel = user?.vehicleInformation?.model
+                        ride.vehiclePlateNumber = user?.vehicleInformation?.licensePlateNumber
+                        ride.vehiclePicture = user?.vehicleInformation?.vehiclePictureUrl
                         val otpCode = ((Math.random() * 900000).toInt() + 100000).toString()
                         val otp = Otp(otpCode, LocalDateTime.now(), FALSE)
                         ride.otp = otp
