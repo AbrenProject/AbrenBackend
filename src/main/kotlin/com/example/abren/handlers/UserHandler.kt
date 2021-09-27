@@ -1,41 +1,30 @@
 package com.example.abren.handlers
 
-import com.cloudinary.Cloudinary
-import com.cloudinary.utils.ObjectUtils
 import com.example.abren.configurations.Constants
-import com.example.abren.models.Preference
 import com.example.abren.models.User
-import com.example.abren.models.VehicleInformation
 import com.example.abren.requests.LoginRequest
 import com.example.abren.responses.AuthResponse
 import com.example.abren.responses.BadRequestResponse
-import com.example.abren.responses.DocumentVerifierResponse
 import com.example.abren.security.SecurityContextRepository
 import com.example.abren.security.TokenProvider
 import com.example.abren.services.UserService
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.core.env.Environment
 import org.springframework.http.MediaType
-import org.springframework.http.codec.multipart.FilePart
-import org.springframework.http.codec.multipart.FormFieldPart
-import org.springframework.http.codec.multipart.Part
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyExtractors
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
-import java.lang.Integer.parseInt
-
 
 @Component
-class UserHandler(private val userService: UserService, private val tokenProvider: TokenProvider, private val env: Environment) {
+class UserHandler(
+    private val userService: UserService,
+    private val tokenProvider: TokenProvider
+) {
     val constants = Constants()
     private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
 
@@ -116,10 +105,10 @@ class UserHandler(private val userService: UserService, private val tokenProvide
                 .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_FIELDS}")))
         ).onErrorResume {
             logger.info("Error: ${it.message}")
-            if("VehicleInformation".toRegex().find(it.message.toString()) != null){
+            if ("VehicleInformation".toRegex().find(it.message.toString()) != null) {
                 ServerResponse.badRequest()
                     .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required for DRIVER role: ${constants.REQUIRED_DRIVER_FIELDS}")))
-            }else {
+            } else {
                 ServerResponse.badRequest()
                     .body(BodyInserters.fromValue(BadRequestResponse("The following fields are required: ${constants.REQUIRED_FIELDS}")))
             }

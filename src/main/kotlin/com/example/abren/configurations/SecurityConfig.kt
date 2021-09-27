@@ -10,7 +10,6 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.core.AuthenticationException
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
@@ -42,7 +41,7 @@ class SecurityConfig(
             .pathMatchers("/api/users/change_account").hasAuthority("RIDER")
             .pathMatchers("/api/rides").hasAuthority("DRIVER")
             .pathMatchers("/api/routes/*").hasAuthority("DRIVER")
-            .pathMatchers("/api/requests").hasAuthority("RIDER") //TODO: Once the route is fixed
+            .pathMatchers("/api/requests").hasAuthority("RIDER")
             .anyExchange().authenticated()
             .and()
             .build()

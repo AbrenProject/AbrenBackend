@@ -33,7 +33,6 @@ class RequestHandler(
     val constants = Constants()
 
 
-
     fun createRequest(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
             val userMono: Mono<User?> =
@@ -112,7 +111,7 @@ class RequestHandler(
 
             userMono.flatMap { user ->
                 val requestMono = requestService.findOne(r.pathVariable("id"))
-                requestMono.flatMap third@ { request ->
+                requestMono.flatMap third@{ request ->
                     if (user?._id != request?.riderId) {
                         ServerResponse.status(401)
                             .body(BodyInserters.fromValue("Request doesn't belong to logged in user."))
@@ -151,14 +150,14 @@ class RequestHandler(
         val input = r.queryParam("otp")
         val requestMono = requestService.findOne(r.pathVariable("id"))
 
-        return input.map first@ { inputVal ->
-            requestMono.flatMap second@ { request ->
+        return input.map first@{ inputVal ->
+            requestMono.flatMap second@{ request ->
                 val rideMono = rideService.findOne(request!!.acceptedRide.toString())
-                rideMono.flatMap third@ { ride ->
-                    if(inputVal != ride?.otp?.code){
+                rideMono.flatMap third@{ ride ->
+                    if (inputVal != ride?.otp?.code) {
                         return@third ServerResponse.badRequest()
                             .body(BodyInserters.fromValue(BadRequestResponse("The code could not be validated.")))
-                    }else{
+                    } else {
                         request.status = "STARTED"
                         return@third requestService.update(request).flatMap { savedRequest ->
                             ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)

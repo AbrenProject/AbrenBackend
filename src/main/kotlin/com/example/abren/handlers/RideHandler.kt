@@ -36,7 +36,6 @@ class RideHandler(
     var startNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
     var destinationNeighbors: MutableMap<String, MutableSet<String>> = HashMap()
 
-    //TODO: UPDATE THE STATUS OF REQUEST TO ACCEPTED
     fun acceptRequest(r: ServerRequest): Mono<ServerResponse> {
         val rideMono = rideService.findOne(r.pathVariable("id"))
         return rideMono.flatMap { ride ->
@@ -129,37 +128,70 @@ class RideHandler(
                                     return@fifth rideService.findAllById(nearbyIds).collectList()
                                         .flatMap sixth@{ nearby -> //TODO: Handle Duplicates
                                             requestedFlux.collectList().flatMap { requested ->
-                                                if(request.acceptedRide != null){
-                                                    rideService.findOne(request.acceptedRide!!).flatMap { acceptedRide ->
-                                                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                                            .body(BodyInserters.fromValue(RidesResponse(requested, nearby, acceptedRide)))
-                                                    }
-                                                }else {
+                                                if (request.acceptedRide != null) {
+                                                    rideService.findOne(request.acceptedRide!!)
+                                                        .flatMap { acceptedRide ->
+                                                            ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                                                                .body(
+                                                                    BodyInserters.fromValue(
+                                                                        RidesResponse(
+                                                                            requested,
+                                                                            nearby,
+                                                                            acceptedRide
+                                                                        )
+                                                                    )
+                                                                )
+                                                        }
+                                                } else {
                                                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                                        .body(BodyInserters.fromValue(RidesResponse(requested, nearby, null)))
+                                                        .body(
+                                                            BodyInserters.fromValue(
+                                                                RidesResponse(
+                                                                    requested,
+                                                                    nearby,
+                                                                    null
+                                                                )
+                                                            )
+                                                        )
                                                 }
 
                                             }
                                         }
-                                } else if(request.acceptedRide != null) {
+                                } else if (request.acceptedRide != null) {
                                     rideService.findOne(request.acceptedRide!!).flatMap { acceptedRide ->
-                                        if(acceptedRide?.status == "FINISHED" && request.status == "STARTED"){
+                                        if (acceptedRide?.status == "FINISHED" && request.status == "STARTED") {
                                             request.status = "FINISHED"
                                             userService.findOne(request.riderId!!).flatMap { user ->
                                                 user?.creditsBought = user!!.creditsBought.minus(acceptedRide.cost)
                                                 userService.update(user).flatMap { savedUser ->
                                                     requestService.update(request).flatMap { savedRequest ->
                                                         ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                                            .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), acceptedRide)))
+                                                            .body(
+                                                                BodyInserters.fromValue(
+                                                                    RidesResponse(
+                                                                        emptyList(),
+                                                                        emptyList(),
+                                                                        acceptedRide
+                                                                    )
+                                                                )
+                                                            )
                                                     }
                                                 }
                                             }
-                                        }else{
+                                        } else {
                                             ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                                                .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), acceptedRide)))
+                                                .body(
+                                                    BodyInserters.fromValue(
+                                                        RidesResponse(
+                                                            emptyList(),
+                                                            emptyList(),
+                                                            acceptedRide
+                                                        )
+                                                    )
+                                                )
                                         }
                                     }
-                                }else{
+                                } else {
                                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
                                         .body(BodyInserters.fromValue(RidesResponse(emptyList(), emptyList(), null)))
                                 }
@@ -181,10 +213,10 @@ class RideHandler(
         val input = r.queryParam("km")
         val rideMono = rideService.findOne(r.pathVariable("id"))
 
-        return input.map first@ { inputVal ->
-            rideMono.flatMap <ServerResponse> second@ { ride ->
+        return input.map first@{ inputVal ->
+            rideMono.flatMap<ServerResponse> second@{ ride ->
                 val userMono = userService.findOne(ride?.driverId.toString())
-                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests )
+                val requestsFlux = requestService.findAllById(ride!!.acceptedRequests)
                 requestsFlux.collectList().flatMap { requests ->
                     userMono.flatMap { user ->
                         val fuel = inputVal.toDouble() / user?.vehicleInformation!!.kml

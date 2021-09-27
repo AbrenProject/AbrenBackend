@@ -2,6 +2,7 @@ package com.example.abren.handlers
 
 import com.example.abren.models.Route
 import com.example.abren.models.User
+import com.example.abren.responses.BadRequestResponse
 import com.example.abren.services.RouteService
 import com.example.abren.services.UserService
 import org.springframework.http.MediaType
@@ -11,18 +12,21 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 import java.time.LocalDateTime
 
 @Component
-class RouteHandler (private val routeService: RouteService,private val userService: UserService) {
+class RouteHandler(private val routeService: RouteService, private val userService: UserService) {
 
     fun getRoutes(r: ServerRequest): Mono<ServerResponse> {
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
-            val userMono: Mono<User?> = userService.findByPhoneNumber(securityContext.authentication.principal as String)
+            val userMono: Mono<User?> =
+                userService.findByPhoneNumber(securityContext.authentication.principal as String)
             userMono.flatMap { user ->
                 val routes = routeService.findAllByDriverId(user?._id!!)
                 ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                    BodyInserters.fromProducer(routes, Route::class.java))
+                    BodyInserters.fromProducer(routes, Route::class.java)
+                )
 
             }
         }
@@ -31,14 +35,15 @@ class RouteHandler (private val routeService: RouteService,private val userServi
     fun getRouteById(r: ServerRequest): Mono<ServerResponse> {
         val routeMono = routeService.findOne(r.pathVariable("id"))
         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                BodyInserters.fromProducer(routeMono, Route::class.java))
+            BodyInserters.fromProducer(routeMono, Route::class.java)
+        )
 
     }
 
     fun deleteRoute(r: ServerRequest): Mono<ServerResponse> {
         val deletedRoute = routeService.delete(r.pathVariable("id"))
         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                .body(deletedRoute, Void::class.java)
+            .body(deletedRoute, Void::class.java)
     }
 
     fun updateRoute(r: ServerRequest): Mono<ServerResponse> {
@@ -61,7 +66,8 @@ class RouteHandler (private val routeService: RouteService,private val userServi
                 }
                 updatedRouteMono.flatMap { updatedRoute ->
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                            BodyInserters.fromValue(updatedRoute))
+                        BodyInserters.fromValue(updatedRoute)
+                    )
                 }
             }
         }
@@ -70,7 +76,8 @@ class RouteHandler (private val routeService: RouteService,private val userServi
     fun createRoute(r: ServerRequest): Mono<ServerResponse> {
         val routeMono = r.bodyToMono(Route::class.java)
         return ReactiveSecurityContextHolder.getContext().flatMap { securityContext ->
-            val userMono: Mono<User?> = userService.findByPhoneNumber(securityContext.authentication.principal as String)
+            val userMono: Mono<User?> =
+                userService.findByPhoneNumber(securityContext.authentication.principal as String)
             userMono.flatMap { user ->
                 routeMono.flatMap { route ->
                     route.driverId = user?._id
@@ -78,8 +85,16 @@ class RouteHandler (private val routeService: RouteService,private val userServi
                     val savedRoute = routeService.create(route)
 
                     ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
-                            BodyInserters.fromProducer(savedRoute, Route::class.java))
-
+                        BodyInserters.fromProducer(savedRoute, Route::class.java)
+                    )
+                }.switchIfEmpty {
+                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                        BodyInserters.fromValue(BadRequestResponse("The following fields are required: [startingLocation, destinationLocation, wayPointLocations]"))
+                    )
+                }.onErrorResume {
+                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                        BodyInserters.fromValue(BadRequestResponse("The following fields are required: [startingLocation, destinationLocation, wayPointLocations]"))
+                    )
                 }
             }
         }

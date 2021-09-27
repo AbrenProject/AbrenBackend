@@ -3,14 +3,8 @@ package com.example.abren.services
 import com.example.abren.models.Request
 import com.example.abren.models.Ride
 import com.example.abren.repositories.RideRepository
-import com.example.abren.requests.DocumentVerifierRequest
 import com.example.abren.requests.NearbyRidesRequest
-import com.example.abren.responses.DocumentVerifierResponse
 import com.example.abren.responses.NearbyRidesResponse
-import com.example.abren.security.SecurityContextRepository
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
@@ -19,7 +13,6 @@ import reactor.core.publisher.Mono
 @Service
 class RideService(private val rideRepository: RideRepository, private val requestService: RequestService, private val webClientBuilder: WebClient.Builder) {
 
-    private val logger: Logger = LoggerFactory.getLogger(SecurityContextRepository::class.java)
     fun findAll(): Flux<Ride?> {
         return rideRepository.findAll();
     }

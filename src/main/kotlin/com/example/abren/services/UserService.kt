@@ -16,7 +16,6 @@ import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
-import java.util.*
 
 
 @Service
@@ -72,18 +71,18 @@ class UserService(private val userRepository: UserRepository, private val webCli
                 throw IllegalArgumentException("ID_CARD: The text in the document could not be validated.")
             }
 
-            if(idResult.data.name != null){
+            if (idResult.data.name != null) {
                 val nameArr = idResult.data.name.split(" ")
                 user.name = Name(nameArr[0], nameArr[1], nameArr[2])
             }
 
-            if(idResult.data.sex != null){
+            if (idResult.data.sex != null) {
                 when {
                     setOf("F", "f", "T", "t", "E", "e").contains(idResult.data.sex) -> {
-                        user.gender =  "Female"
+                        user.gender = "Female"
                     }
                     setOf("M", "m", "N", "n", "W", "w").contains(idResult.data.sex) -> {
-                        user.gender =  "Male"
+                        user.gender = "Male"
                     }
                     else -> {
                         throw IllegalArgumentException("ID_CARD: The text in the document could not be validated.")
@@ -91,8 +90,9 @@ class UserService(private val userRepository: UserRepository, private val webCli
                 }
             }
 
-            if(idResult.data.dateOfBirth != null) {
-                val formatter: DateTimeFormatter = DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("MMM dd, yyyy").toFormatter()
+            if (idResult.data.dateOfBirth != null) {
+                val formatter: DateTimeFormatter =
+                    DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("MMM dd, yyyy").toFormatter()
                 val date = LocalDate.parse(idResult.data.dateOfBirth, formatter)
                 val age = Period.between(date, LocalDate.now()).years
                 when {
@@ -111,7 +111,7 @@ class UserService(private val userRepository: UserRepository, private val webCli
                 }
             }
 
-            if(user.role == "DRIVER"){
+            if (user.role == "DRIVER") {
                 logger.info("DL")
                 val dlResultMono = verifyDocument("DL", user.vehicleInformation?.licenseUrl!!, user.profilePictureUrl!!)
                 return@flatMap dlResultMono.flatMap { dlResult ->
@@ -137,7 +137,11 @@ class UserService(private val userRepository: UserRepository, private val webCli
         }
     }
 
-    fun verifyDocument(documentType: String, imagePath: String, profileImagePath: String): Mono<DocumentVerifierResponse> {
+    fun verifyDocument(
+        documentType: String,
+        imagePath: String,
+        profileImagePath: String
+    ): Mono<DocumentVerifierResponse> {
         val webClient = webClientBuilder.baseUrl("https://abren-project-scripts.herokuapp.com").build()
 
         val documentVerifierRequest = DocumentVerifierRequest(documentType, imagePath, profileImagePath)
