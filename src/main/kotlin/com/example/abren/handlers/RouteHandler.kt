@@ -88,11 +88,11 @@ class RouteHandler(private val routeService: RouteService, private val userServi
                         BodyInserters.fromProducer(savedRoute, Route::class.java)
                     )
                 }.switchIfEmpty {
-                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    ServerResponse.badRequest().body(
                         BodyInserters.fromValue(BadRequestResponse("The following fields are required: [startingLocation, destinationLocation, wayPointLocations]"))
                     )
                 }.onErrorResume {
-                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(
+                    ServerResponse.badRequest().body(
                         BodyInserters.fromValue(BadRequestResponse("The following fields are required: [startingLocation, destinationLocation, wayPointLocations]"))
                     )
                 }
